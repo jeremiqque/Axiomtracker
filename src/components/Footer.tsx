@@ -46,7 +46,7 @@ const Footer = () => {
       </div>
 
       <p className="text-center text-gray-500 mt-8 sm:mt-10 text-xs sm:text-sm">
-        © 2025 Axiom Tracker. All rights reserved.
+        © 2026 Axiom Tracker. All rights reserved.
       </p>
     </footer>
   );
