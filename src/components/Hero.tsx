@@ -3,91 +3,115 @@ import freepick from "../assets/freepick.png";
 import younggirl from "../assets/younggirl.png";
 import happyman from "../assets/happyman.png";
 import closeup from "../assets/closeup.png";
-import downright from "../assets/downright.png";
+
+import { FiArrowRight, FiShield, FiBell, FiUsers } from "react-icons/fi";
 
 export default function Hero() {
   return (
-    <section className="relative w-full min-h-screen h-screen flex items-center justify-center px-4 sm:px-6 md:px-10 py-20 sm:py-0">
-      {/* Background Image */}
+    <section className="relative w-full min-h-screen flex flex-col items-center justify-center overflow-hidden">
+
+      {/* Background */}
       <img
         src={freepick}
         alt="background"
-        className="absolute left-0 right-0 top-0 bottom-0 w-full h-full object-cover rounded-none sm:rounded-xl pointer-events-none"
+        className="absolute inset-0 w-full h-full object-cover"
       />
 
-      {/* Overlay */}
-      <div className="absolute left-0 right-0 top-0 bottom-0 bg-black/40 rounded-none sm:rounded-xl pointer-events-none"></div>
+      {/* Layered overlays for depth */}
+      <div className="absolute inset-0 bg-black/55" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/80" />
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col items-center text-white text-center space-y-4 sm:space-y-6 max-w-5xl mx-auto w-full">
+      <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-4xl mx-auto w-full py-32">
 
-        {/* Top Badge */}
-        <div className="bg-white text-black px-4 sm:px-6 py-2 rounded-full shadow-lg text-xs sm:text-sm">
-          Welcome to Axiom Tracker
+        {/* Badge */}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/15 bg-white/8 backdrop-blur-md mb-8">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]" />
+          <span className="text-xs font-medium text-white/70 tracking-wide">
+            Trusted by 500+ compliance teams
+          </span>
         </div>
 
-        {/* Main Title */}
-        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight max-w-3xl px-4 md:px-0">
-          Never Miss a <span className="text-blue-400">Certificate</span> <br />
-          Expiry Again.
+        {/* Headline */}
+        <h1 className="text-4xl sm:text-5xl lg:text-[3.75rem] font-bold text-white leading-[1.1] tracking-tight mb-6">
+          Never miss a<br />
+          <span className="text-white/40">certificate expiry</span><br />
+          ever again.
         </h1>
 
         {/* Description */}
-        <p className="max-w-2xl text-gray-200 text-sm sm:text-base md:text-lg px-4 md:px-0 leading-relaxed">
-          Smart certificate tracking that keeps your team compliant,
-          certified, and audit-ready. Automated alerts, and real-time
-          compliance dashboards in one powerful platform.
+        <p className="text-sm sm:text-base text-white/50 leading-relaxed max-w-lg mb-10">
+          Axiom Tracker automates credential tracking, sends expiry alerts at
+          30, 14 &amp; 7 days, and keeps your entire team audit-ready — all in
+          one place.
         </p>
 
-        {/* Buttons */}
-        <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 mt-4 px-4 md:px-0 w-full sm:w-auto">
-          <Link to="/welcome" className="bg-white text-black px-6 py-3 rounded-xl font-medium shadow-md hover:opacity-90 transition w-full sm:w-auto text-center text-sm sm:text-base">
-            Get Started
+        {/* CTAs */}
+        <div className="flex flex-col sm:flex-row items-center gap-3 mb-16 w-full sm:w-auto">
+          <Link
+            to="/welcome"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-white text-gray-950 text-sm font-semibold rounded-xl hover:bg-gray-100 transition-colors shadow-lg shadow-black/20"
+          >
+            Get started free
+            <FiArrowRight size={14} />
           </Link>
-
-          <Link to="/create-account" className="bg-white text-black px-6 py-3 rounded-xl font-medium shadow-md hover:opacity-90 transition flex items-center justify-center gap-2 w-full sm:w-auto text-sm sm:text-base">
-            Learn How it Works
-            <img src={downright} alt="" className="w-4 h-4" />
+          <Link
+            to="/create-account"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-white/8 border border-white/15 text-white text-sm font-medium rounded-xl hover:bg-white/14 transition-colors backdrop-blur-sm"
+          >
+            See how it works
           </Link>
         </div>
 
-        {/* Bottom Mini-card: split image group and text into separate siblings */}
-        <div className="flex flex-col sm:flex-row items-center gap-3 mt-6 sm:mt-8 w-full max-w-full px-4 sm:px-0">
-          {/* Image group on a white pill background (separate from text) */}
-          <div className="flex items-center bg-white rounded-full p-1 sm:p-2 shadow-sm">
-            <span className="bg-white rounded-full w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center overflow-hidden flex-shrink-0">
-              <img
-                src={younggirl}
-                alt="users"
-                className="w-full h-full object-cover"
+        {/* Social proof */}
+        <div className="flex items-center gap-3">
+          {/* Overlapping avatars */}
+          <div className="flex items-center">
+            {[
+              { src: younggirl, pos: 'center top'    },
+              { src: happyman,  pos: 'center top'    },
+              { src: closeup,   pos: 'center center' },
+            ].map(({ src, pos }, i) => (
+              <div
+                key={i}
+                className="shrink-0 w-10 h-10 rounded-full border-[2.5px] border-[#0d1117]"
+                style={{
+                  backgroundImage: `url(${src})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: pos,
+                  marginLeft: i === 0 ? 0 : '-10px',
+                  zIndex: 10 - i,
+                  position: 'relative',
+                }}
               />
-            </span>
-
-            <span className="bg-white rounded-full -ml-2 w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center overflow-hidden flex-shrink-0">
-              <img
-                src={happyman}
-                alt="users"
-                className="w-full h-full object-cover"
-              />
-            </span>
-
-            <span className="bg-white rounded-full -ml-2 w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center overflow-hidden flex-shrink-0">
-              <img
-                src={closeup}
-                alt="users"
-                className="w-full h-full object-cover"
-              />
-            </span>
+            ))}
           </div>
 
-          {/* Text is a separate element beside the image group */}
-          <div className="flex-1">
-            <p className="text-white text-xs sm:text-sm leading-snug text-center sm:text-left">
-              Track certifications, ensure compliance, and automate renewals effortlessly with Axiom Tracker
-            </p>
+          {/* Label */}
+          <div className="text-left">
+            <p className="text-sm font-semibold text-white leading-tight">Over 10,000+</p>
+            <p className="text-xs text-white/45">Active clients</p>
           </div>
+        </div>
+
+      </div>
+
+      {/* Bottom trust bar */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 border-t border-white/8 bg-black/30 backdrop-blur-md">
+        <div className="max-w-4xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-12">
+          {[
+            { icon: FiBell,   label: "Automated expiry alerts"  },
+            { icon: FiShield, label: "End-to-end encrypted"     },
+            { icon: FiUsers,  label: "Full team management"     },
+          ].map(({ icon: Icon, label }) => (
+            <div key={label} className="flex items-center gap-2">
+              <Icon size={13} className="text-white/30 shrink-0" />
+              <span className="text-xs text-white/40">{label}</span>
+            </div>
+          ))}
         </div>
       </div>
+
     </section>
   );
 }
