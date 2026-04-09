@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Toast from "./Toast";
 import SearchableSelect from "./SearchableSelect";
+import Select from "./Select";
 import { credentialsService, type Credential } from "../lib/credentialsService";
 import { fetchCountries, fetchCities, type Country, type City } from "../lib/geoService";
 import { storageService } from "../lib/storageService";
 import type { CredentialType } from "../lib/CredentialType";
+import { FiArrowLeft, FiUpload, FiPlus, FiX } from "react-icons/fi";
 
 const AddCredentials = () => {
   const [showToast, setShowToast] = useState(false);
@@ -295,318 +297,256 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
 
     getEntities();
   }, [ownerType]);
+  const fieldClass = "w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-gray-400 transition-colors disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed";
+  const labelClass = "block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5";
+
   return (
-    <div className="w-full">
-      {/* Toast Notification */}
+    <div className="w-full relative">
       {showToast && (
         <div className="fixed bottom-6 right-6 z-50">
-          <Toast
-            message="Success credential saved successfully"
-            type="success"
-            onClose={() => setShowToast(false)}
-          />
+          <Toast message="Credential saved successfully" type="success" onClose={() => setShowToast(false)} />
         </div>
       )}
 
-      <div className="bg-white min-h-screen p-4 md:p-8">
-        {/* Page Title */}
-        <div className="mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Add New Credentials/Individual</h2>
-          <p className="text-gray-600 text-sm mt-2">Fill in the details below to add a new credential or individual</p>
+      {/* New Certificate Type Modal */}
+      {showNewCertTypeModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 shadow-xl w-full max-w-sm">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-sm font-semibold text-gray-900">New Certificate Type</h3>
+              <button onClick={() => { setShowNewCertTypeModal(false); setNewCertType(''); }} className="w-7 h-7 rounded-lg hover:bg-gray-100 grid place-items-center text-gray-400 hover:text-gray-700 transition-colors">
+                <FiX size={15} />
+              </button>
+            </div>
+            <input
+              type="text"
+              value={newCertType}
+              onChange={(e) => setNewCertType(e.target.value)}
+              placeholder="e.g. Safety Certificate"
+              className={fieldClass}
+              autoFocus
+            />
+            <div className="flex gap-3 mt-4">
+              <button onClick={handleAddNewCertType} disabled={!newCertType.trim()}
+                className="flex-1 py-2.5 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                Add Type
+              </button>
+              <button onClick={() => { setShowNewCertTypeModal(false); setNewCertType(''); }}
+                className="flex-1 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-5">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate('/dashboard/credentials')}
+            className="w-8 h-8 rounded-lg border border-gray-200 grid place-items-center text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors shrink-0">
+            <FiArrowLeft size={15} />
+          </button>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">
+              {existingCredential ? 'Edit Credential' : 'Add New Credential'}
+            </h2>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {existingCredential ? 'Update the details below' : 'Fill in the details to create a new credential record'}
+            </p>
+          </div>
         </div>
 
-        {/* Form Container */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 md:p-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Section 1 — Credential Identity */}
+        <div className="bg-white rounded-xl border border-gray-200">
+          <div className="px-5 py-3.5 border-b border-gray-100 rounded-t-xl">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Credential Identity</p>
+          </div>
+          <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
 
-            {/* LEFT COLUMN */}
-            <div className="space-y-6">
-              {/* Credential Owner */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Credential Owner *</label>
-                <div className="mb-2">
-                </div>
-
-                <SearchableSelect
-                  name="credentialOwner"
-                  value={formData.credentialOwner}
-                  onChange={async (e) => {
-                    handleInputChange(e);
-                    if (e.target.value) {
-                      await handleEntitySelect(e.target.value);
-                    }
-                  }}
-                  options={entityOptions}
-                  placeholder={loadingEntities ? "Loading owners..." : "Select or enter owner name"}
-                  disabled={loadingEntities}
-                  loading={loadingEntities}
-                />
-                <button className="w-full mt-2 text-sm font-medium border border-gray-300 rounded-lg p-2.5 text-gray-700 hover:bg-gray-50 transition cursor-pointer">
-                  + Create New Owner
-                </button>
-              </div>
-
-              {/* Credential Type */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Credential Type *</label>
-                <select
-                  name="credentialType"
-                  value={formData.credentialType}
-                  onChange={handleInputChange}
-                  disabled={loadingTypes}
-                  className="w-full border border-gray-300 rounded-lg p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-black disabled:bg-gray-100"
-                >
-                  <option value="">{loadingTypes ? 'Loading types...' : 'Select Type'}</option>
-                  {credentialTypes.map((ctype) => (
-                    <option key={ctype.id} value={ctype.name}>{ctype.name}</option>
-                  ))}
-                </select>
-                <button 
-                  type="button"
-                  onClick={() => setShowNewCertTypeModal(true)}
-                  className="w-full mt-2 text-sm font-medium border border-gray-300 rounded-lg p-2.5 text-gray-700 hover:bg-gray-50 transition cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                   Add New Certificate Type
-                </button>
-              </div>
-
-              {/* Credential Number */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Credential Number</label>
-                <input
-                  type="text"
-                  name="credential_number"
-                  value={formData.credential_number}
-                  onChange={handleInputChange}
-                  placeholder="Enter credential number"
-                  className="w-full border border-gray-300 rounded-lg p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                />
-              </div>
-
-              {/* Date of Issue */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Date of Issue *</label>
-                <input
-                  type="date"
-                  name="date_of_issue"
-                  value={formData.date_of_issue}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-lg p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                />
-              </div>
-
-              {/* Expiry Date */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Expiry Date *</label>
-                <input
-                  type="date"
-                  name="expiry_date"
-                  value={formData.expiry_date}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-lg p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                />
-              </div>
+            {/* Owner */}
+            <div className="md:col-span-2">
+              <label className={labelClass}>Credential Owner <span className="text-red-400 normal-case">*</span></label>
+              <SearchableSelect
+                name="credentialOwner"
+                value={formData.credentialOwner}
+                onChange={async (e) => { handleInputChange(e); if (e.target.value) await handleEntitySelect(e.target.value); }}
+                options={entityOptions}
+                placeholder={loadingEntities ? "Loading owners…" : "Select or enter owner name"}
+                disabled={loadingEntities}
+                loading={loadingEntities}
+              />
+              <button className="mt-2 flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-800 transition-colors cursor-pointer">
+                <FiPlus size={12} /> Create new owner
+              </button>
             </div>
 
-            {/* New Certificate Type Modal */}
-{showNewCertTypeModal && (
-              <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                <div className="bg-white/80 backdrop-blur-md border border-white/50 rounded-2xl p-6 shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Add New Certificate Type</h3>
-                    <button
-                      onClick={() => { setShowNewCertTypeModal(false); setNewCertType(''); }}
-                      className="text-gray-400 hover:text-gray-600"
-                    >
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                  <div className="space-y-4">
-                    <input
-                      type="text"
-                      value={newCertType}
-                      onChange={(e) => setNewCertType(e.target.value)}
-                      placeholder="Enter new certificate type name"
-                      className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-black"
-                      autoFocus
-                    />
-                    <div className="flex gap-3 pt-2">
-                      <button
-                        onClick={handleAddNewCertType}
-                        disabled={!newCertType.trim()}
-                        className="cursor-pointer flex-1 bg-white text-black font-semibold py-2.5 px-4 rounded-lg hover:bg-black hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Add Type
-                      </button>
-                      <button
-                        onClick={() => { setShowNewCertTypeModal(false); setNewCertType(''); }}
-                        className="cursor-pointer flex-1 border border-gray-300 bg-white text-black font-semibold py-2.5 px-4 rounded-lg hover:bg-black hover:text-white transition"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Credential Type */}
+            <div>
+              <label className={labelClass}>Credential Type <span className="text-red-400 normal-case">*</span></label>
+              <Select
+                value={formData.credentialType}
+                onChange={val => setFormData(prev => ({ ...prev, credentialType: val }))}
+                options={credentialTypes.map(ct => ({ value: ct.name, label: ct.name }))}
+                placeholder="Select type"
+                loading={loadingTypes}
+                searchable={credentialTypes.length > 6}
+              />
+              <button type="button" onClick={() => setShowNewCertTypeModal(true)}
+                className="mt-2 flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-800 transition-colors cursor-pointer">
+                <FiPlus size={12} /> Add new certificate type
+              </button>
+            </div>
 
-            {/* RIGHT COLUMN */}
-            <div className="space-y-6">
-              {/* Issuing Institute */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Issuing Institution</label>
-                <select
-                  name="issuingInstitution"
-                  value={formData.issuingInstitution}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-lg p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+            {/* Credential Number */}
+            <div>
+              <label className={labelClass}>Credential Number</label>
+              <input type="text" name="credential_number" value={formData.credential_number} onChange={handleInputChange}
+                placeholder="e.g. CERT-20240001" className={fieldClass} />
+            </div>
+          </div>
+        </div>
+
+        {/* Section 2 — Dates */}
+        <div className="bg-white rounded-xl border border-gray-200">
+          <div className="px-5 py-3.5 border-b border-gray-100 rounded-t-xl">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Dates</p>
+          </div>
+          <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className={labelClass}>Date of Issue <span className="text-red-400 normal-case">*</span></label>
+              <input type="date" name="date_of_issue" value={formData.date_of_issue} onChange={handleInputChange} className={fieldClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Expiry Date <span className="text-red-400 normal-case">*</span></label>
+              <input type="date" name="expiry_date" value={formData.expiry_date} onChange={handleInputChange} className={fieldClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Does it expire?</label>
+              <Select
+                value={formData.credentialExpire}
+                onChange={val => setFormData(prev => ({ ...prev, credentialExpire: val }))}
+                options={[
+                  { value: 'Yes', label: 'Yes' },
+                  { value: 'No',  label: 'No'  },
+                ]}
+                placeholder="Select"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3 — Issuer & Location */}
+        <div className="bg-white rounded-xl border border-gray-200">
+          <div className="px-5 py-3.5 border-b border-gray-100 rounded-t-xl">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Issuer & Location</p>
+          </div>
+          <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className={labelClass}>Issuing Institution</label>
+              <Select
+                value={formData.issuingInstitution}
+                onChange={val => setFormData(prev => ({ ...prev, issuingInstitution: val }))}
+                options={[
+                  { value: 'Osun State University',            label: 'Osun State University'            },
+                  { value: 'Lagos State University',           label: 'Lagos State University'           },
+                  { value: 'University of Ibadan',             label: 'University of Ibadan'             },
+                  { value: 'Federal University of Agriculture', label: 'Federal University of Agriculture' },
+                  { value: 'Fuyoe',                            label: 'Fuyoe'                            },
+                ]}
+                placeholder="Select institution"
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Country</label>
+              <Select
+                value={formData.country}
+                onChange={val => setFormData(prev => ({ ...prev, country: val, city: '' }))}
+                options={countries.map(c => ({ value: c.name, label: c.name }))}
+                placeholder="Select country"
+                loading={loadingCountries}
+                searchable
+              />
+            </div>
+            <div>
+              <label className={labelClass}>City</label>
+              <Select
+                value={formData.city}
+                onChange={val => setFormData(prev => ({ ...prev, city: val }))}
+                options={cities.map(c => ({ value: c.name, label: c.name }))}
+                placeholder={loadingCities ? 'Loading…' : !formData.country ? 'Select a country first' : 'Select city'}
+                loading={loadingCities}
+                disabled={!formData.country}
+                searchable
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Section 4 — Media & Notes */}
+        <div className="bg-white rounded-xl border border-gray-200">
+          <div className="px-5 py-3.5 border-b border-gray-100 rounded-t-xl">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Media & Notes</p>
+          </div>
+          <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
+
+            {/* Image upload */}
+            <div>
+              <label className={labelClass}>Credential Image</label>
+              <div className="relative">
+                <div
+                  className={`w-full h-36 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-colors ${imagePreview ? 'border-gray-200' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
+                  onClick={() => document.getElementById('image-upload')?.click()}
                 >
-                  <option>Select Institution</option>
-                  <option>Osun State University</option>
-                  <option>Lagos State University</option>
-                  <option>University of Ibadan</option>
-                  <option>Federal University of Agriculture</option>
-                  <option>Fuyoe</option>
-                </select>
-              </div>
-
-              {/* Country */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Country</label>
-                <select
-                  name="country"
-                  value={formData.country}
-                  onChange={handleInputChange}
-                  disabled={loadingCountries}
-                  className="w-full border border-gray-300 rounded-lg p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                >
-                  <option value="">
-                    {loadingCountries ? 'Loading countries...' : 'Select Country'}
-                  </option>
-                  {countries.map((country) => (
-                    <option key={country.code} value={country.name}>
-                      {country.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* City */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">City</label>
-                <select
-                  name="city"
-                  value={formData.city}
-                  onChange={handleInputChange}
-                  disabled={loadingCities || !formData.country}
-                  className="w-full border border-gray-300 rounded-lg p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                >
-                  <option value="">
-                    {loadingCities ? 'Loading cities...' : !formData.country ? 'Select a country first' : 'Select City'}
-                  </option>
-                  {cities.map((city) => (
-                    <option key={city.code} value={city.name}>
-                      {city.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Upload Credential Image - Modern UI */}
-              <div className="space-y-3">
-                <label className="block text-sm font-semibold text-gray-700">Upload Credential Image</label>
-                <div className="relative">
-                  <div 
-                    className="w-full h-32 border-2 border-dashed border-gray-300 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col items-center justify-center text-center p-6 hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 cursor-pointer group"
-                    onClick={() => document.getElementById('image-upload')?.click()}
-                  >
-                    <input
-                      id="image-upload"
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleImageChange}
-                      className="hidden"
-                    />
-                    {!imagePreview ? (
-                      <>
-                        <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-3 shadow-lg group-hover:shadow-xl transition-shadow">
-                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                        <p className="text-sm font-medium text-gray-700 mb-1 group-hover:text-gray-900">Click to upload image</p>
-                        <p className="text-xs text-gray-500">JPG, PNG up to 5MB</p>
-                      </>
-                    ) : (
-                      <img src={imagePreview} alt="Preview" className="w-full h-full object-contain rounded-lg shadow-md" />
-                    )}
-                  </div>
-                  {imagePreview && (
-                    <button
-                      onClick={() => {
-                        setImagePreview('');
-                        setFormData(prev => ({ ...prev, imageFile: null, imageUrl: '' }));
-                        const input = document.getElementById('image-upload') as HTMLInputElement;
-                        input && (input.value = '');
-                      }}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                  <input id="image-upload" type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                  {imagePreview ? (
+                    <img src={imagePreview} alt="Preview" className="w-full h-full object-contain rounded-xl" />
+                  ) : (
+                    <>
+                      <div className="w-9 h-9 rounded-lg bg-gray-100 grid place-items-center mb-2">
+                        <FiUpload size={16} className="text-gray-400" />
+                      </div>
+                      <p className="text-xs font-medium text-gray-500">Click to upload</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">JPG, PNG · max 5MB</p>
+                    </>
                   )}
                 </div>
-              </div>
-
-              {/* Certificate Expires? */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Credential Expire?</label>
-                <select
-                  name="credentialExpire"
-                  value={formData.credentialExpire}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-lg p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent cursor-pointer"
-                >
-                  <option>Select Type</option>
-                  <option>Yes</option>
-                  <option>No</option>
-                </select>
+                {imagePreview && (
+                  <button
+                    onClick={() => { setImagePreview(''); setFormData(prev => ({ ...prev, imageFile: null, imageUrl: '' })); const i = document.getElementById('image-upload') as HTMLInputElement; if (i) i.value = ''; }}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full grid place-items-center hover:bg-red-600 transition-colors shadow-sm"
+                  >
+                    <FiX size={11} />
+                  </button>
+                )}
               </div>
             </div>
-          </div>
 
-          {/* Additional Notes - Full Width */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <label className="block text-sm font-semibold text-gray-700 mb-3">Additional Notes</label>
-            <textarea
-              name="additional_notes"
-              value={formData.additional_notes}
-              onChange={handleInputChange}
-              placeholder="Enter any additional notes..."
-              className="w-full border border-gray-300 rounded-lg p-3 text-gray-700 bg-white h-32 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent resize-none"
-            ></textarea>
+            {/* Notes */}
+            <div>
+              <label className={labelClass}>Additional Notes</label>
+              <textarea
+                name="additional_notes"
+                value={formData.additional_notes}
+                onChange={handleInputChange}
+                placeholder="Any extra details about this credential…"
+                rows={5}
+                className={`${fieldClass} resize-none`}
+              />
+            </div>
           </div>
+        </div>
 
-          {/* Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 mt-8 pt-6 border-t border-gray-200">
-            <button
-              onClick={handleSaveCredentials}
-              className="flex-1 sm:flex-none border border-gray-300 bg-white text-black font-semibold py-3 px-8 rounded-lg hover:bg-black hover:text-white transition duration-200">
-              {existingCredential ? 'Update Credentials' : 'Save Credentials'}
-            </button>
-            <button
-              onClick={() => navigate('/dashboard/credentials')}
-              className="flex-1 sm:flex-none border border-gray-300 bg-white text-black font-semibold py-3 px-8 rounded-lg hover:bg-black hover:text-white transition duration-200"
-            >
-              Cancel
-            </button>
-          </div>
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-3 pb-2">
+          <button onClick={() => navigate('/dashboard/credentials')}
+            className="px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors">
+            Cancel
+          </button>
+          <button onClick={handleSaveCredentials}
+            className="px-6 py-2.5 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
+            {existingCredential ? 'Update Credential' : 'Save Credential'}
+          </button>
         </div>
       </div>
     </div>
