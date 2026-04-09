@@ -1,11 +1,15 @@
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, MoreVertical } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import AddEmployee from "./AddEmployee";
 import { employeesService, type Employee } from "../lib/supabaseService";
+import { useUserRole } from "../hooks/useUserRole";
+import supabase from "../lib/supabase";
 
 export default function Entity() {
   const navigate = useNavigate();
+  const { canEdit, isEmployee, loading: roleLoading } = useUserRole();
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>('');
   const [employees, setEmployees] = useState<Employee[]>([]);
 
   useEffect(() => {
@@ -15,40 +19,100 @@ export default function Entity() {
         setEmployees(data);
       } catch (err) {
         console.error('Failed to fetch employees:', err);
-        // If session expired, redirect to login
         if (err instanceof Error && (err.message.includes('Session expired') || err.message.includes('JWT expired'))) {
           navigate('/login');
         }
       }
     };
+    const fetchCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserEmail(user?.email ?? '');
+    };
     fetchEmployees();
+    fetchCurrentUser();
   }, []);
 
   const [openMenu, setOpenMenu] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
-  return (
-    <div className="p-4 md:p-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <h1 className="text-lg font-semibold">Employee Management</h1>
+  const [searchTerm, setSearchTerm] = useState('');
 
-        <div className="flex gap-2">
-          <Link
-            to="/invite"
-            className="bg-white border border-gray-200 px-4 py-2 rounded-md text-sm cursor-pointer hover:bg-black hover:text-white"
-          >
-            Invite Employee
-          </Link>
-          <button
-            onClick={() => setShowForm(true)}
-            className="bg-white border border-gray-200 px-4 py-2 flex items-center gap-2 rounded-md text-sm cursor-pointer w-fit hover:bg-black hover:text-white"
-          >
-            <Plus size={16} />
-            Add New Employee
-          </button>
+  const filteredEmployees = employees.filter(emp =>
+    `${emp.first_name} ${emp.last_name} ${emp.email} ${emp.role}`
+      .toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const roleBadge = (role: string) => {
+    const map: Record<string, string> = {
+      Admin:    'bg-gray-900 text-white',
+      Employee: 'bg-blue-50 text-blue-700',
+      User:     'bg-gray-100 text-gray-600',
+      Viewer:   'bg-purple-50 text-purple-700',
+    };
+    const cls = map[role] ?? 'bg-gray-100 text-gray-600';
+    return <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>{role}</span>;
+  };
+
+  const avatarColor = (name: string) => {
+    const colors = [
+      'bg-blue-100 text-blue-700', 'bg-emerald-100 text-emerald-700',
+      'bg-amber-100 text-amber-700', 'bg-purple-100 text-purple-700',
+      'bg-rose-100 text-rose-700',  'bg-cyan-100 text-cyan-700',
+    ];
+    return colors[name.charCodeAt(0) % colors.length];
+  };
+
+  const initials = (first: string, last: string) =>
+    `${first?.[0] ?? ''}${last?.[0] ?? ''}`.toUpperCase();
+
+  const deleteEmployee = async (emp: Employee) => {
+    try {
+      await employeesService.deleteEmployee(emp.id);
+      setEmployees(await employeesService.listEmployees());
+      setOpenMenu(null);
+    } catch (err) {
+      console.error('Failed to delete employee:', err);
+      if (err instanceof Error && (err.message.includes('Session expired') || err.message.includes('JWT expired'))) {
+        navigate('/login');
+      }
+    }
+  };
+
+  if (roleLoading) {
+    return (
+      <div className="flex items-center justify-center h-48 gap-1.5">
+        {[0,1,2].map(i => <span key={i} className="w-2 h-2 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: `${i*0.15}s` }} />)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-bold text-gray-900">Employee Management</h1>
+          <p className="text-xs text-gray-400 mt-0.5">Manage your team members and their roles</p>
         </div>
+        {canEdit && (
+          <div className="flex items-center gap-2">
+            <Link
+              to="/dashboard/invite"
+              className="px-4 py-2.5 text-sm font-medium border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+            >
+              Invite Employee
+            </Link>
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
+            >
+              <Plus size={15} />
+              Add Employee
+            </button>
+          </div>
+        )}
       </div>
 
       {(showForm || editingEmployee) ? (
@@ -60,27 +124,18 @@ export default function Entity() {
             email: editingEmployee.email,
             lastLogin: new Date(editingEmployee.updated_at).toISOString().slice(0, 19).replace('T', ' '),
           } : undefined}
-          onCancel={() => {
-            setShowForm(false);
-            setEditingEmployee(null);
-          }}
-          onSave={async (employeeData: { id: number; name: string; role: string; email: string; lastLogin: string; }) => {
+          onCancel={() => { setShowForm(false); setEditingEmployee(null); }}
+          onSave={async (employeeData) => {
             try {
-              console.log('Creating employee with data:', employeeData);
-              const employeeDataForService = {
+              const created = await employeesService.createEmployee({
                 email: employeeData.email,
                 role: employeeData.role,
                 first_name: employeeData.name.split(' ')[0],
                 last_name: employeeData.name.split(' ').slice(1).join(' '),
-                date_of_birth: '',
-                job_title: '',
-                cell_phone: '',
-                send_text_notification: false,
-                additional_notes: '',
-              };
-              const createdEmployee = await employeesService.createEmployee(employeeDataForService);
-              console.log('Employee created:', createdEmployee);
-              setEmployees(prev => [createdEmployee, ...prev]);
+                date_of_birth: '', job_title: '', cell_phone: '',
+                send_text_notification: false, additional_notes: '',
+              });
+              setEmployees(prev => [created, ...prev]);
               setShowForm(false);
             } catch (err) {
               console.error('Failed to create employee:', err);
@@ -91,17 +146,15 @@ export default function Entity() {
               }
             }
           }}
-          onUpdate={async (updatedEmployee: { id: number; name: string; role: string; email: string; lastLogin: string; }) => {
+          onUpdate={async (updatedEmployee) => {
             try {
-              const employeeData = {
+              await employeesService.updateEmployee(updatedEmployee.id, {
                 email: updatedEmployee.email,
                 role: updatedEmployee.role,
                 first_name: updatedEmployee.name.split(' ')[0],
                 last_name: updatedEmployee.name.split(' ').slice(1).join(' '),
-              };
-              await employeesService.updateEmployee(updatedEmployee.id, employeeData);
-              const data = await employeesService.listEmployees();
-              setEmployees(data);
+              });
+              setEmployees(await employeesService.listEmployees());
               setEditingEmployee(null);
             } catch (err) {
               console.error('Failed to update employee:', err);
@@ -111,213 +164,141 @@ export default function Entity() {
       ) : (
         <>
           {/* Search */}
-          <div className="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-md w-full md:w-72 mb-4">
-            <Search size={16} className="text-gray-500" />
+          <div className="relative w-full sm:w-72">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
-              placeholder="Search for employee"
-              className="bg-transparent outline-none text-sm w-full"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Search employees…"
+              className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-gray-400 transition-colors"
             />
           </div>
 
-          {/* Mobile View */}
-          <div className="md:hidden">
-            {employees.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                No employees added yet. Click "Add New Employee" to get started.
+          {/* Table card */}
+          <div className="bg-white rounded-xl border border-gray-200">
+
+            {filteredEmployees.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <div className="w-12 h-12 rounded-full bg-gray-100 grid place-items-center text-gray-300 text-2xl">○</div>
+                <p className="text-sm text-gray-400">
+                  {employees.length === 0
+                    ? 'No employees yet — click Add Employee to get started.'
+                    : 'No employees match your search.'}
+                </p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {employees.map((emp) => (
-                  <div key={emp.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">{`${emp.first_name} ${emp.last_name}`}</h3>
-                        <p className="text-sm text-gray-600 mt-1"><span className="font-medium">Role:</span> {emp.role}</p>
-                        <p className="text-sm text-gray-600"><span className="font-medium">Email:</span> {emp.email}</p>
-                        <p className="text-sm text-gray-600"><span className="font-medium">Last Login:</span> {new Date(emp.updated_at).toLocaleDateString()}</p>
+              <>
+                {/* Mobile cards */}
+                <div className="md:hidden divide-y divide-gray-100">
+                  {filteredEmployees.map(emp => (
+                    <div key={emp.id} className="flex items-start gap-3 p-4">
+                      <div className={`w-9 h-9 rounded-full grid place-items-center text-xs font-semibold shrink-0 ${avatarColor(`${emp.first_name} ${emp.last_name}`)}`}>
+                        {initials(emp.first_name, emp.last_name)}
                       </div>
-                      <div className="relative ml-4">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenMenu(openMenu === emp.id ? null : emp.id);
-                          }}
-                          className="dropdown-button text-gray-400 hover:text-gray-600 transition p-1 sm:p-2 cursor-pointer pointer-events-auto"
-                        >
-                          <svg
-                            className="w-4 sm:w-5 h-4 sm:h-5"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <circle cx="10" cy="4" r="2" />
-                            <circle cx="10" cy="10" r="2" />
-                            <circle cx="10" cy="16" r="2" />
-                          </svg>
-                        </button>
-                        {openMenu === emp.id && (
-                          <div className="absolute right-0 top-8 bg-white border rounded-md shadow-md w-32 z-20">
-                            <button
-                              onClick={() => {
-                                setEditingEmployee(emp);
-                                setOpenMenu(null);
-                              }}
-                              className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 w-full cursor-pointer text-left"
-                            >
-                              <Pencil size={14} />
-                              Edit
-                            </button>
-                            <button
-                              onClick={async () => {
-                                try {
-                                  await employeesService.deleteEmployee(emp.id);
-                                  const data = await employeesService.listEmployees();
-                                  setEmployees(data);
-                                  setOpenMenu(null);
-                                } catch (err) {
-                                  console.error('Failed to delete employee:', err);
-                                  if (err instanceof Error && (err.message.includes('Session expired') || err.message.includes('JWT expired'))) {
-                                    navigate('/login');
-                                  }
-                                }
-                              }}
-                              className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-gray-100 w-full cursor-pointer text-left"
-                            >
-                              <Trash2 size={14} />
-                              Delete
-                            </button>
-                          </div>
-                        )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">{emp.first_name} {emp.last_name}</p>
+                        <p className="text-xs text-gray-400 truncate">{emp.email}</p>
+                        <div className="mt-1.5">{roleBadge(emp.role)}</div>
                       </div>
+                      {(canEdit || (isEmployee && emp.email === currentUserEmail)) && (
+                        <div className="relative shrink-0">
+                          <button onClick={e => { e.stopPropagation(); setOpenMenu(openMenu === emp.id ? null : emp.id); }}
+                            className="w-8 h-8 rounded-lg hover:bg-gray-100 grid place-items-center text-gray-400 hover:text-gray-700 transition-colors">
+                            <MoreVertical size={15} />
+                          </button>
+                          {openMenu === emp.id && (
+                            <div className="absolute right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 w-36 py-1">
+                              <button onClick={() => { setEditingEmployee(emp); setOpenMenu(null); }}
+                                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">
+                                <Pencil size={13} className="text-amber-500" /> Edit
+                              </button>
+                              {canEdit && (
+                                <>
+                                  <div className="border-t border-gray-100 my-1" />
+                                  <button onClick={() => deleteEmployee(emp)}
+                                    className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 flex items-center gap-3">
+                                    <Trash2 size={13} /> Delete
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
-                <div className="flex justify-between items-center p-4 text-xs text-gray-500 border-t">
-                  <span>{employees.length} results</span>
-                  <span>1–{employees.length} of {employees.length} entries</span>
+                  ))}
                 </div>
-              </div>
+
+                {/* Desktop table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-100">
+                        <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Employee</th>
+                        <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Role</th>
+                        <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Email</th>
+                        <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Last Login</th>
+                        {(canEdit || isEmployee) && <th className="px-5 py-3 w-12" />}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {filteredEmployees.map(emp => (
+                        <tr key={emp.id} className="hover:bg-gray-50/60 transition-colors group">
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-full grid place-items-center text-xs font-semibold shrink-0 ${avatarColor(`${emp.first_name} ${emp.last_name}`)}`}>
+                                {initials(emp.first_name, emp.last_name)}
+                              </div>
+                              <span className="text-sm font-medium text-gray-900">{emp.first_name} {emp.last_name}</span>
+                            </div>
+                          </td>
+                          <td className="px-5 py-3.5">{roleBadge(emp.role)}</td>
+                          <td className="px-5 py-3.5 text-sm text-gray-500">{emp.email}</td>
+                          <td className="px-5 py-3.5 text-sm text-gray-400">
+                            {new Date(emp.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </td>
+                          {(canEdit || (isEmployee && emp.email === currentUserEmail)) && (
+                            <td className="px-5 py-3.5 text-right relative">
+                              <button
+                                onClick={e => { e.stopPropagation(); setOpenMenu(openMenu === emp.id ? null : emp.id); }}
+                                className="w-8 h-8 rounded-lg hover:bg-gray-100 grid place-items-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
+                              >
+                                <MoreVertical size={15} />
+                              </button>
+                              {openMenu === emp.id && (
+                                <div className="dropdown-menu absolute right-4 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 w-36 py-1">
+                                  <button onClick={() => { setEditingEmployee(emp); setOpenMenu(null); }}
+                                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors">
+                                    <Pencil size={13} className="text-amber-500" /> Edit
+                                  </button>
+                                  {canEdit && (
+                                    <>
+                                      <div className="border-t border-gray-100 my-1" />
+                                      <button onClick={() => deleteEmployee(emp)}
+                                        className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 flex items-center gap-3 transition-colors">
+                                        <Trash2 size={13} /> Delete
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
+                  <p className="text-xs text-gray-400">
+                    Showing <span className="font-medium text-gray-600">{filteredEmployees.length}</span> of <span className="font-medium text-gray-600">{employees.length}</span> employees
+                  </p>
+                  <p className="text-xs text-gray-400">1–{filteredEmployees.length} of {employees.length} entries</p>
+                </div>
+              </>
             )}
-          </div>
-
-          {/* Desktop Table */}
-          <div className="hidden md:block w-full border border-gray-300 rounded-lg px-3 py-2 sm:py-3 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent">
-            <table className="min-w-[900px] w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="p-3 text-left"><input type="checkbox" /></th>
-                  <th className="p-3 text-left">All</th>
-                  <th className="p-3 text-left">Employees</th>
-                  <th className="p-3 text-left">Role</th>
-                  <th className="p-3 text-left">Email</th>
-                  <th className="p-3 text-left">Last Login</th>
-                  <th className="p-3 text-left">Actions</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {employees.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="p-8 text-center text-gray-500">
-                      No employees added yet. Click "Add New Employee" to get started.
-                    </td>
-                  </tr>
-                ) : (
-                  employees.map((emp, index) => (
-                    <tr key={emp.id} className="">
-                      <td className="p-3">
-                        <input type="checkbox" />
-                      </td>
-                      <td className="p-3">{index + 1}</td>
-                      <td className="p-3">{`${emp.first_name} ${emp.last_name}`}</td>
-                      <td className="p-3">{emp.role}</td>
-                      <td className="p-3">{emp.email}</td>
-                      <td className="p-3">{new Date(emp.updated_at).toLocaleDateString()}</td>
-                      <td className="p-3 text-right relative">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenMenu(openMenu === emp.id ? null : emp.id);
-                          }}
-                          className="dropdown-button text-gray-400 hover:text-gray-600 transition p-1 sm:p-2 cursor-pointer pointer-events-auto"
-                        >
-                          <svg
-                            className="w-4 sm:w-5 h-4 sm:h-5"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <circle cx="10" cy="4" r="2" />
-                            <circle cx="10" cy="10" r="2" />
-                            <circle cx="10" cy="16" r="2" />
-                          </svg>
-                        </button>
-                        {openMenu === emp.id && (
-                          <div className="dropdown-menu absolute right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-40 sm:w-48">
-                            <button
-                              onClick={() => {
-                                setEditingEmployee(emp);
-                                setOpenMenu(null);
-                              }}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                            >
-                              <svg
-                                className="w-4 h-4 text-amber-600"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                />
-                              </svg>
-                              Edit
-                            </button>
-                            <button
-                              onClick={async () => {
-                                try {
-                                  await employeesService.deleteEmployee(emp.id);
-                                  const data = await employeesService.listEmployees();
-                                  setEmployees(data);
-                                  setOpenMenu(null);
-                                } catch (err) {
-                                  console.error('Failed to delete employee:', err);
-                                  if (err instanceof Error && (err.message.includes('Session expired') || err.message.includes('JWT expired'))) {
-                                    navigate('/login');
-                                  }
-                                }
-                              }}
-                              className="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50 flex items-center gap-2"
-                            >
-                              <svg
-                                className="w-4 h-4 text-red-600"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                />
-                              </svg>
-                              Delete
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-
-            <div className="flex justify-between items-center p-4 text-xs text-gray-500">
-              <span>{employees.length} results</span>
-              <span>1–{employees.length} of {employees.length} entries</span>
-            </div>
           </div>
         </>
       )}
