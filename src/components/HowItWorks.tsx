@@ -1,49 +1,68 @@
-// import React from "react";
-import subtract from "../assets/subtract.png";
+import { FiUploadCloud, FiBell, FiShield } from "react-icons/fi";
+
+const steps = [
+  {
+    number: "01",
+    icon: FiUploadCloud,
+    title: "Upload Certifications",
+    desc: "Import all employee certificates into the dashboard in minutes. Bulk upload or add one by one.",
+  },
+  {
+    number: "02",
+    icon: FiBell,
+    title: "Set Auto-Renew Alerts",
+    desc: "Automatic reminders go out at 30, 14, and 7 days before expiry — to you and your team.",
+  },
+  {
+    number: "03",
+    icon: FiShield,
+    title: "Stay Compliant",
+    desc: "Real-time dashboards keep your organisation audit-ready with zero manual effort.",
+  },
+];
 
 const HowItWorks = () => {
   return (
-    <section className="px-4 sm:px-6 md:px-16 py-12 sm:py-16">
-      <img src={subtract} alt="logo" className="w-8 sm:w-10 mx-auto" /> <br/>
-      <h2 className="text-center text-lg sm:text-xl md:text-2xl font-bold text-[#282828]">How Does Axiom Tracker Work?</h2>
-      <p className="text-center text-xs sm:text-sm md:text-base text-gray-600 mt-2 px-4">Get started in minutes, not months. Our simple three-step process gets you compliant fast.</p>
+    <section className="py-24 bg-gray-950 text-white">
+      <div className="max-w-5xl mx-auto px-6 lg:px-12">
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-8 sm:mt-10">
-
-        {/* Step 1 */}
-        <div className="border rounded-lg p-4 sm:p-6 text-center shadow-sm">
-          <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto flex items-center justify-center bg-black text-white rounded-full text-xl sm:text-2xl font-bold mb-3">
-            01
-          </div>
-
-          <h4 className="font-semibold text-base sm:text-lg mb-2">Upload Certifications</h4>
-          <p className="text-gray-600 text-xs sm:text-sm">
-            Upload all employee certificates easily into the dashboard in minutes.
+        {/* Header */}
+        <div className="text-center mb-16">
+          <span className="inline-block text-xs font-semibold uppercase tracking-widest text-white/30 mb-4">
+            How it works
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
+            Up and running in minutes
+          </h2>
+          <p className="mt-3 text-sm text-white/40 max-w-xs mx-auto leading-relaxed">
+            Three simple steps. No IT team required.
           </p>
         </div>
 
-        {/* Step 2 */}
-        <div className="border rounded-lg p-4 sm:p-6 text-center shadow-sm">
-          <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto flex items-center justify-center bg-black text-white rounded-full text-xl sm:text-2xl font-bold mb-3">
-            02
-          </div>
+        {/* Steps */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {steps.map(({ number, icon: Icon, title, desc }, i) => (
+            <div
+              key={i}
+              className="flex flex-col gap-10 p-7 rounded-2xl border border-white/8 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/12 transition-all duration-200"
+            >
+              {/* Step number */}
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-white/8 border border-white/10 grid place-items-center">
+                  <Icon size={16} className="text-white/50" />
+                </div>
+                <span className="text-xs font-semibold text-white/20 tabular-nums tracking-widest">
+                  {number}
+                </span>
+              </div>
 
-          <h4 className="font-semibold text-base sm:text-lg mb-2">Set Auto-Renew Alerts</h4>
-          <p className="text-gray-600 text-xs sm:text-sm">
-            Get notified before any certificate expires so you never miss a deadline.
-          </p>
-        </div>
-
-        {/* Step 3 */}
-        <div className="border rounded-lg p-4 sm:p-6 text-center shadow-sm">
-          <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto flex items-center justify-center bg-black text-white rounded-full text-xl sm:text-2xl font-bold mb-3">
-            03
-          </div>
-
-          <h4 className="font-semibold text-base sm:text-lg mb-2">Stay Compliant</h4>
-          <p className="text-gray-600 text-xs sm:text-sm">
-            Avoid penalty risks and compliance issues with automated reminders.
-          </p>
+              {/* Text */}
+              <div>
+                <h4 className="text-sm font-semibold text-white mb-2.5">{title}</h4>
+                <p className="text-xs text-white/35 leading-relaxed">{desc}</p>
+              </div>
+            </div>
+          ))}
         </div>
 
       </div>
