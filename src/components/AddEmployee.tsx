@@ -1,5 +1,6 @@
 import { useState } from "react";
 import editIcon from "../assets/edit.png";
+import Select from "./Select";
 
 interface Employee {
   id: number;
@@ -81,16 +82,16 @@ export default function AddEmployee({ onCancel, onSave, onUpdate, employee }: {
             />
             <img src={editIcon} alt="edit" className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4" />
           </div>
-          <select
-            name="role"
+          <Select
             value={formData.role}
-            onChange={handleInputChange}
-            className="bg-gray-100 px-4 py-3 rounded-md text-sm"
-          >
-            <option>Select role</option>
-            <option value="Admin">Admin</option>
-            <option value="Employee">Employee</option>
-          </select>
+            onChange={val => setFormData(prev => ({ ...prev, role: val }))}
+            options={[
+              { value: 'Admin',    label: 'Admin'    },
+              { value: 'Employee', label: 'Employee' },
+              { value: 'Viewer',   label: 'Viewer'   },
+            ]}
+            placeholder="Select role"
+          />
         </div>
       </section>
 
@@ -153,11 +154,15 @@ export default function AddEmployee({ onCancel, onSave, onUpdate, employee }: {
           </div>
           <div>
             <label className="text-sm font-medium mb-1 block">Send Text Notification</label>
-            <select className="bg-gray-100 px-4 py-3 rounded-md text-sm w-full cursor-pointer">
-              <option>Select option</option>
-              <option>Yes</option>
-              <option>SNo</option>
-            </select>
+            <Select
+              value={(formData as any).sendTextNotification ?? ''}
+              onChange={val => setFormData(prev => ({ ...prev, sendTextNotification: val }))}
+              options={[
+                { value: 'Yes', label: 'Yes' },
+                { value: 'No',  label: 'No'  },
+              ]}
+              placeholder="Select option"
+            />
           </div>
         </div>
       </section>
