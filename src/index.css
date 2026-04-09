@@ -1,7 +1,23 @@
 @import "tailwindcss";
-* {
-  font-family: "Fira Sans", sans-serif;
+
+html {
+  scroll-behavior: smooth;
 }
+
+* {
+  font-family: "Aeonik", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Smooth scrolling on all scrollable containers */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 
 @keyframes fadeIn {
   from {
