@@ -155,3 +155,39 @@ export const employeesService = {
     return data;
   },
 };
+
+// ── Company Settings (singleton row, id = 1) ──────────────────────────────────
+export interface CompanySettings {
+  id: number;
+  name: string;
+  industry: string;
+  website: string;
+  size: string;
+  country: string;
+  city: string;
+  description: string;
+  logo_url: string | null;
+}
+
+export const companySettingsService = {
+  async get(): Promise<CompanySettings | null> {
+    await ensureValidSession();
+    const { data, error } = await supabase
+      .from('company_settings')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async upsert(settings: Omit<CompanySettings, 'id' | 'logo_url'> & { logo_url?: string | null }): Promise<void> {
+    await ensureValidSession();
+    const { error } = await supabase
+      .from('company_settings')
+      .upsert({ id: 1, ...settings }, { onConflict: 'id' });
+
+    if (error) throw error;
+  },
+};
