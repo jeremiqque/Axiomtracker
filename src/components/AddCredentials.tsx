@@ -4,10 +4,10 @@ import Toast from "./Toast";
 import SearchableSelect from "./SearchableSelect";
 import Select from "./Select";
 import { credentialsService, type Credential } from "../lib/credentialsService";
+import { employeesService } from "../lib/supabaseService";
 import { fetchCountries, fetchCities, type Country, type City } from "../lib/geoService";
 import { storageService } from "../lib/storageService";
-import type { CredentialType } from "../lib/CredentialType";
-import { FiArrowLeft, FiUpload, FiPlus, FiX } from "react-icons/fi";
+import { FiArrowLeft, FiUpload, FiX } from "react-icons/fi";
 
 const AddCredentials = () => {
   const [showToast, setShowToast] = useState(false);
@@ -23,7 +23,7 @@ const AddCredentials = () => {
   const [loadingCountries, setLoadingCountries] = useState(false);
   const [loadingCities, setLoadingCities] = useState(false);
 
-  // Entity options for dropdown
+  // Employee options for owner dropdown
   const [entityOptions, setEntityOptions] = useState<{ value: string; label: string }[]>([]);
   const [loadingEntities, setLoadingEntities] = useState(false);
   // Owner type: individual or company
@@ -31,11 +31,10 @@ const AddCredentials = () => {
 
   const [imagePreview, setImagePreview] = useState("");
 
-  // Dynamic credential types from DB (shared)
-  const [credentialTypes, setCredentialTypes] = useState<CredentialType[]>([]);
-  const [loadingTypes, setLoadingTypes] = useState(false);
-  const [showNewCertTypeModal, setShowNewCertTypeModal] = useState(false);
-  const [newCertType, setNewCertType] = useState('');
+  const credentialTypes = [
+    { value: 'License',     label: 'License'     },
+    { value: 'Certificate', label: 'Certificate' },
+  ];
 
   const [formData, setFormData] = useState(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -90,31 +89,6 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
     }));
   };
 
-  const handleEntitySelect = async (selectedEntity: string) => {
-    try {
-      const data = await credentialsService.getEntitiesWithLatestCredentialsByType(ownerType);
-      const selectedEntityData = data.find(item => item.entity === selectedEntity);
-      if (selectedEntityData) {
-        const credential = selectedEntityData.latestCredential;
-        setFormData(prev => ({
-          ...prev,
-          credentialOwner: credential.entity || "",
-          credential_number: credential.credential_number || "",
-          date_of_issue: credential.date_of_issue || prev.date_of_issue,
-          issuingInstitution: credential.issuing_institution || "",
-          country: credential.country || "",
-          credentialType: credential.name || "",
-          credentialExpire: credential.credential_expire || "",
-          expiry_date: credential.expiry_date || "",
-          city: credential.city || "",
-          additional_notes: credential.additional_notes || "",
-          imageUrl: credential.image_url || "",
-        }));
-      }
-    } catch (error) {
-      console.error('Error fetching entity data:', error);
-    }
-  };
 
   const handleSaveCredentials = async () => {
     try {
@@ -240,63 +214,27 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
     getCities();
   }, [formData.country]);
 
-  // Load credential types from DB
+  // Load employees for owner dropdown
   useEffect(() => {
-    const loadTypes = async () => {
-      setLoadingTypes(true);
-      try {
-        const types = await credentialsService.getCredentialTypes();
-        setCredentialTypes(types);
-      } catch (error) {
-        console.error('Error loading credential types:', error);
-      } finally {
-        setLoadingTypes(false);
-      }
-    };
-    loadTypes();
-  }, []);
-
-  // Handle new cert type submission (DB)
-  const handleAddNewCertType = async () => {
-    const trimmed = newCertType.trim();
-    if (!trimmed || trimmed.length < 2) {
-      alert('Please enter a unique certificate type name (min 2 chars)');
-      return;
-    }
-
-    try {
-      const newType = await credentialsService.createCredentialType(trimmed);
-      setCredentialTypes(prev => [...prev, newType]);
-      setNewCertType('');
-      setShowNewCertTypeModal(false);
-      setFormData(prev => ({ ...prev, credentialType: trimmed }));
-    } catch (error) {
-      console.error('Error creating type:', error);
-      alert(`Failed to create type: ${(error as Error).message}`);
-    }
-  };
-
-  // Load entities on mount/ownerType change
-  useEffect(() => {
-    const getEntities = async () => {
+    const getEmployees = async () => {
       setLoadingEntities(true);
       try {
-        const data = await credentialsService.getEntitiesWithLatestCredentialsByType(ownerType);
-        const options = data.map(item => ({
-          value: item.entity,
-          label: item.entity
+        const employees = await employeesService.listEmployees();
+        const options = employees.map(emp => ({
+          value: `${emp.first_name} ${emp.last_name}`.trim(),
+          label: `${emp.first_name} ${emp.last_name}`.trim(),
         }));
         setEntityOptions(options);
       } catch (error) {
-        console.error('Error fetching entities:', error);
+        console.error('Error fetching employees:', error);
         setEntityOptions([]);
       } finally {
         setLoadingEntities(false);
       }
     };
 
-    getEntities();
-  }, [ownerType]);
+    getEmployees();
+  }, []);
   const fieldClass = "w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-gray-400 transition-colors disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed";
   const labelClass = "block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5";
 
@@ -308,37 +246,6 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
         </div>
       )}
 
-      {/* New Certificate Type Modal */}
-      {showNewCertTypeModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 shadow-xl w-full max-w-sm">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-sm font-semibold text-gray-900">New Certificate Type</h3>
-              <button onClick={() => { setShowNewCertTypeModal(false); setNewCertType(''); }} className="w-7 h-7 rounded-lg hover:bg-gray-100 grid place-items-center text-gray-400 hover:text-gray-700 transition-colors">
-                <FiX size={15} />
-              </button>
-            </div>
-            <input
-              type="text"
-              value={newCertType}
-              onChange={(e) => setNewCertType(e.target.value)}
-              placeholder="e.g. Safety Certificate"
-              className={fieldClass}
-              autoFocus
-            />
-            <div className="flex gap-3 mt-4">
-              <button onClick={handleAddNewCertType} disabled={!newCertType.trim()}
-                className="flex-1 py-2.5 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                Add Type
-              </button>
-              <button onClick={() => { setShowNewCertTypeModal(false); setNewCertType(''); }}
-                className="flex-1 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors">
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="space-y-5">
         {/* Header */}
@@ -370,15 +277,12 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
               <SearchableSelect
                 name="credentialOwner"
                 value={formData.credentialOwner}
-                onChange={async (e) => { handleInputChange(e); if (e.target.value) await handleEntitySelect(e.target.value); }}
+                onChange={(e) => handleInputChange(e)}
                 options={entityOptions}
-                placeholder={loadingEntities ? "Loading owners…" : "Select or enter owner name"}
+                placeholder={loadingEntities ? "Loading employees…" : "Select employee"}
                 disabled={loadingEntities}
                 loading={loadingEntities}
               />
-              <button className="mt-2 flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-800 transition-colors cursor-pointer">
-                <FiPlus size={12} /> Create new owner
-              </button>
             </div>
 
             {/* Credential Type */}
@@ -387,15 +291,9 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
               <Select
                 value={formData.credentialType}
                 onChange={val => setFormData(prev => ({ ...prev, credentialType: val }))}
-                options={credentialTypes.map(ct => ({ value: ct.name, label: ct.name }))}
+                options={credentialTypes}
                 placeholder="Select type"
-                loading={loadingTypes}
-                searchable={credentialTypes.length > 6}
               />
-              <button type="button" onClick={() => setShowNewCertTypeModal(true)}
-                className="mt-2 flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-800 transition-colors cursor-pointer">
-                <FiPlus size={12} /> Add new certificate type
-              </button>
             </div>
 
             {/* Credential Number */}
