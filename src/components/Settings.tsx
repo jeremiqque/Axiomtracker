@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { employeesService } from "../lib/supabaseService";
+import { employeesService, companySettingsService } from "../lib/supabaseService";
+import Select from "./Select";
 import supabase from "../lib/supabase";
 import { fetchCountries, fetchCities } from "../lib/geoService";
 import type { Country, City } from "../lib/geoService";
+import { FiBell, FiUsers, FiMail, FiAlertCircle, FiUser, FiLock, FiUpload, FiBriefcase, FiShield, FiCheck, FiX, FiCamera } from "react-icons/fi";
+import { useUserRole } from "../hooks/useUserRole";
 
 // ===================== ACCOUNT INFORMATION PAGE =====================
 export const AccountInformationPage = () => {
@@ -234,121 +237,208 @@ export const AccountInformationPage = () => {
     setPersonalInfoError(null);
   };
 
+  const { canEdit } = useUserRole();
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+
+  const initials = [personalInfo.firstName, personalInfo.lastName]
+    .filter(Boolean).map(n => n[0].toUpperCase()).join('') || 'U';
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { alert('Please select an image file.'); return; }
+    if (file.size > 3 * 1024 * 1024) { alert('Image must be under 3MB.'); return; }
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  };
+
   return (
-    <div className="w-full min-h-screen bg-[#f5f5f5] p-4 md:p-8 flex flex-col">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 md:p-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6 border-b border-gray-300 pb-3">Personal Information</h2>
+    <div className="space-y-4">
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div>
-            <label className="block text-sm font-medium mb-1">First Name</label>
-            <input
-              name="firstName"
-              value={personalInfo.firstName}
-              onChange={handlePersonalInfoChange}
-              className="p-3 rounded bg-[#f7f7f7] w-full"
-            />
+      {/* Personal Information */}
+      <div className="bg-white rounded-xl border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3 rounded-t-xl">
+          <div className="w-7 h-7 rounded-lg bg-gray-100 grid place-items-center">
+            <FiUser size={14} className="text-gray-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Last Name</label>
-            <input
-              name="lastName"
-              value={personalInfo.lastName}
-              onChange={handlePersonalInfoChange}
-              className="p-3 rounded bg-[#f7f7f7] w-full"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
-            <input
-              name="email"
-              value={personalInfo.email}
-              onChange={handlePersonalInfoChange}
-              className="p-3 rounded bg-[#f7f7f7] w-full"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Role</label>
-            <select
-              name="role"
-              value={personalInfo.role}
-              onChange={handlePersonalInfoChange}
-              className="p-3 rounded bg-[#f7f7f7] w-full"
-            >
-              <option value="">Select role</option>
-              <option value="Admin">Admin</option>
-              <option value="Employee">Employee</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Department</label>
-            <input
-              name="department"
-              value={personalInfo.department}
-              onChange={handlePersonalInfoChange}
-              className="p-3 rounded bg-[#f7f7f7] w-full"
-            />
+            <h2 className="text-sm font-semibold text-gray-900">Personal Information</h2>
+            <p className="text-xs text-gray-400">Update your profile details</p>
           </div>
         </div>
 
-        {personalInfoError && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {personalInfoError}
-          </div>
-        )}
+        <div className="p-6">
+          {/* Avatar row */}
+          <div className="flex items-center gap-5 mb-6 pb-6 border-b border-gray-100">
+            {/* Clickable avatar */}
+            <div className="relative shrink-0 group cursor-pointer" onClick={() => document.getElementById('avatar-upload')?.click()}>
+              <input
+                id="avatar-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+              {/* Avatar circle */}
+              {avatarPreview ? (
+                <img
+                  src={avatarPreview}
+                  alt="Profile"
+                  className="w-16 h-16 rounded-full object-cover ring-2 ring-gray-200"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-black text-white grid place-items-center text-xl font-semibold ring-2 ring-gray-200">
+                  {initials}
+                </div>
+              )}
+              {/* Camera overlay on hover */}
+              <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity grid place-items-center">
+                <FiCamera size={16} className="text-white" />
+              </div>
+              {/* Small camera badge */}
+              <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-white border border-gray-200 rounded-full grid place-items-center shadow-sm">
+                <FiCamera size={10} className="text-gray-500" />
+              </div>
+            </div>
 
-        <h2 className="font-semibold mb-4 border-b border-gray-300 pb-2">Change Password</h2>
-        {passwordError && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {passwordError}
+            <div>
+              <p className="text-sm font-semibold text-gray-900">
+                {[personalInfo.firstName, personalInfo.lastName].filter(Boolean).join(' ') || 'Your Name'}
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">{personalInfo.email || 'your@email.com'}</p>
+              <button
+                onClick={() => document.getElementById('avatar-upload')?.click()}
+                className="mt-2 text-xs font-medium text-gray-500 hover:text-gray-900 underline underline-offset-2 transition-colors"
+              >
+                {avatarPreview ? 'Change photo' : 'Upload photo'}
+              </button>
+              {avatarFile && (
+                <button
+                  onClick={() => { setAvatarPreview(null); setAvatarFile(null); }}
+                  className="ml-3 mt-2 text-xs font-medium text-red-400 hover:text-red-600 transition-colors"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
           </div>
-        )}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div>
-            <label className="block text-sm font-medium mb-1">Old Password</label>
-            <input
-              type="password"
-              name="oldPassword"
-              value={password.oldPassword}
-              onChange={handlePasswordChange}
-              className="p-3 rounded bg-[#f7f7f7] w-full"
-              disabled={isChangingPassword}
-            />
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            {[
+              { label: 'First Name', name: 'firstName' },
+              { label: 'Last Name',  name: 'lastName'  },
+              { label: 'Email',      name: 'email'     },
+            ].map(f => (
+              <div key={f.name}>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">{f.label}</label>
+                <input
+                  name={f.name}
+                  value={(personalInfo as any)[f.name]}
+                  onChange={handlePersonalInfoChange}
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-gray-400 transition-colors"
+                />
+              </div>
+            ))}
+
+            {/* Department — read-only for non-admins */}
+            <div>
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Department</label>
+              {!canEdit ? (
+                <div className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-gray-50 flex items-center justify-between">
+                  <span className="text-gray-500">{personalInfo.department || '—'}</span>
+                  <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                    <FiShield size={12} />
+                    Managed by admin
+                  </div>
+                </div>
+              ) : (
+                <input
+                  name="department"
+                  value={personalInfo.department}
+                  onChange={handlePersonalInfoChange}
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-gray-400 transition-colors"
+                />
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Role</label>
+              <div className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-gray-50 flex items-center justify-between">
+                <span className="text-gray-600 font-medium">{personalInfo.role || '—'}</span>
+                <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                  <FiShield size={12} />
+                  Managed from backend
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {personalInfoError && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm mb-4">
+              <FiAlertCircle size={14} className="shrink-0" />
+              {personalInfoError}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Change Password */}
+      <div className="bg-white rounded-xl border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3 rounded-t-xl">
+          <div className="w-7 h-7 rounded-lg bg-gray-100 grid place-items-center">
+            <FiLock size={14} className="text-gray-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">New Password</label>
-            <input
-              type="password"
-              name="newPassword"
-              value={password.newPassword}
-              onChange={handlePasswordChange}
-              className="p-3 rounded bg-[#f7f7f7] w-full"
-              disabled={isChangingPassword}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Confirm New Password</label>
-            <input
-              type="password"
-              name="confirmPassword"
-              value={password.confirmPassword}
-              onChange={handlePasswordChange}
-              className="p-3 rounded bg-[#f7f7f7] w-full"
-              disabled={isChangingPassword}
-            />
+            <h2 className="text-sm font-semibold text-gray-900">Change Password</h2>
+            <p className="text-xs text-gray-400">Leave blank if you don't want to change it</p>
           </div>
         </div>
 
-        <div className="flex space-x-4">
-          <button
-            onClick={handleSave}
-            disabled={isChangingPassword || isSaving}
-            className="bg-white border px-6 py-3 rounded-md text-sm cursor-pointer hover:bg-black hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isChangingPassword || isSaving ? 'Saving...' : 'Save Changes'}
-          </button>
-          <button onClick={handleCancel} className="bg-white border px-6 py-3 rounded-md text-sm cursor-pointer hover:bg-black hover:text-white">Cancel</button>
+        <div className="p-6">
+          {passwordError && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm mb-4">
+              <FiAlertCircle size={14} className="shrink-0" />
+              {passwordError}
+            </div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              { label: 'Current Password',  name: 'oldPassword'     },
+              { label: 'New Password',       name: 'newPassword'     },
+              { label: 'Confirm Password',   name: 'confirmPassword' },
+            ].map(f => (
+              <div key={f.name}>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">{f.label}</label>
+                <input
+                  type="password"
+                  name={f.name}
+                  value={(password as any)[f.name]}
+                  onChange={handlePasswordChange}
+                  disabled={isChangingPassword}
+                  placeholder="••••••••"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-gray-400 transition-colors disabled:opacity-50"
+                />
+              </div>
+            ))}
+          </div>
         </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center justify-end gap-3 pt-1">
+        <button
+          onClick={handleCancel}
+          className="px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={isChangingPassword || isSaving}
+          className="px-5 py-2.5 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {isChangingPassword || isSaving ? 'Saving…' : 'Save Changes'}
+        </button>
       </div>
     </div>
   );
@@ -373,17 +463,38 @@ export const CompanyDetailsPage = () => {
   const [loadingCities, setLoadingCities] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
-  // Load persisted company details from localStorage on mount
+  // Load company details from Supabase so all users see the same data
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('companyDetails');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setCompanyDetails({ ...companyDetails, ...parsed, logo: null });
+    const load = async () => {
+      try {
+        const data = await companySettingsService.get();
+        if (data) {
+          setCompanyDetails(prev => ({
+            ...prev,
+            name: data.name || '',
+            industry: data.industry || 'Construction',
+            website: data.website || '',
+            size: data.size || '1-10',
+            country: data.country || 'Select Country',
+            city: data.city || 'Select City',
+            description: data.description || '',
+            logo: null,
+          }));
+          if (data.logo_url) setLogoPreview(data.logo_url);
+        }
+      } catch (err) {
+        console.error('Failed to load company details:', err);
+        // fallback to localStorage if Supabase unavailable
+        try {
+          const saved = localStorage.getItem('companyDetails');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            setCompanyDetails(prev => ({ ...prev, ...parsed, logo: null }));
+          }
+        } catch {}
       }
-    } catch (err) {
-      console.error('Failed to load saved company details:', err);
-    }
+    };
+    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -494,21 +605,17 @@ export const CompanyDetailsPage = () => {
         throw new Error('Company name is required');
       }
 
-      // Dummy save logic - replace with actual API call
-      console.log('Saving company details:', companyDetails);
-
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Persist to localStorage so values remain when user navigates away
-      try {
-        const toSave = { ...companyDetails };
-        // Remove logo File when saving to localStorage
-        if (toSave.logo) delete (toSave as any).logo;
-        localStorage.setItem('companyDetails', JSON.stringify(toSave));
-      } catch (err) {
-        console.error('Failed to persist company details:', err);
-      }
+      // Save to Supabase so all users see the updated values
+      await companySettingsService.upsert({
+        name: companyDetails.name,
+        industry: companyDetails.industry,
+        website: companyDetails.website,
+        size: companyDetails.size,
+        country: companyDetails.country,
+        city: companyDetails.city,
+        description: companyDetails.description,
+        logo_url: logoPreview && !companyDetails.logo ? logoPreview : null,
+      });
 
       alert('Company details saved successfully!');
     } catch (error) {
@@ -519,180 +626,221 @@ export const CompanyDetailsPage = () => {
     }
   };
 
-  const handleCancel = () => {
-    setCompanyDetails({
-      name: '',
-      industry: 'Construction',
-      website: '',
-      size: '1-10',
-      country: 'Select Country',
-      city: 'Select City',
-      description: '',
-      logo: null
-    });
+  const handleCancel = async () => {
+    try {
+      const data = await companySettingsService.get();
+      if (data) {
+        setCompanyDetails(prev => ({
+          ...prev,
+          name: data.name || '',
+          industry: data.industry || 'Construction',
+          website: data.website || '',
+          size: data.size || '1-10',
+          country: data.country || 'Select Country',
+          city: data.city || 'Select City',
+          description: data.description || '',
+          logo: null,
+        }));
+        setLogoPreview(data.logo_url || null);
+      }
+    } catch {
+      // ignore
+    }
   };
 
+  const { canEdit } = useUserRole();
+
+  const readonlyField = (label: string, value: string) => (
+    <div key={label}>
+      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">{label}</label>
+      <div className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-600">
+        {value || <span className="text-gray-400">—</span>}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="w-full min-h-screen bg-[#f5f5f5] p-4 md:p-8 flex flex-col">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 md:p-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6 border-b border-gray-300 pb-3">Company Details</h2>
+    <div className="space-y-4">
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-          <div className="flex justify-center mt-10">
+      {/* Logo + Company fields */}
+      <div className="bg-white rounded-xl border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 rounded-lg bg-gray-100 grid place-items-center">
+              <FiBriefcase size={14} className="text-gray-500" />
+            </div>
             <div>
-              <label className="block text-sm font-medium mb-2 text-center">Company Logo</label>
-              <div
-                className={`border-2 border-dashed rounded-xl h-40 w-full max-w-xs p-4 text-sm transition-colors cursor-pointer ${
-                  isDragOver ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-300 text-gray-500 hover:bg-gray-50'
-                }`}
-                onClick={() => { if (!logoPreview) document.getElementById('logo-upload')?.click(); }}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-              >
-                <div className="w-full h-full flex items-center justify-center">
-                  <input id="logo-upload" type="file" accept="image/png,image/jpeg" onChange={handleFileChange} className="hidden" />
+              <h2 className="text-sm font-semibold text-gray-900">Company Details</h2>
+              <p className="text-xs text-gray-400">
+                {canEdit ? 'Manage your organisation profile' : 'View-only — contact an admin to make changes'}
+              </p>
+            </div>
+          </div>
+          {!canEdit && (
+            <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-gray-50 border border-gray-200 px-2.5 py-1.5 rounded-lg">
+              <FiShield size={11} />
+              View only
+            </div>
+          )}
+        </div>
 
-                  {/* If a logo is selected, show it inside the box and hide the instructions */}
-                  {logoPreview ? (
-                    <img src={logoPreview} alt="Company Logo Preview" className="mx-auto w-32 h-32 object-contain" onClick={() => document.getElementById('logo-upload')?.click()} />
-                  ) : (
-                    <div className="text-center">
-                      <p>Drag & drop or click to upload</p>
-                      <p className="text-xs mt-1">PNG or JPG files only</p>
-                      <div className="mt-2">
-                        <button type="button" onClick={() => document.getElementById('logo-upload')?.click()} className="border px-4 py-2 rounded hover:bg-gray-100">Upload</button>
-                      </div>
-                    </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+
+            {/* Logo */}
+            <div className="flex flex-col items-center gap-3">
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide self-start">Company Logo</label>
+              {canEdit ? (
+                <>
+                  <div
+                    className={`w-full h-36 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors ${
+                      isDragOver ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                    onClick={() => { if (!logoPreview) document.getElementById('logo-upload')?.click(); }}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
+                    <input id="logo-upload" type="file" accept="image/png,image/jpeg" onChange={handleFileChange} className="hidden" />
+                    {logoPreview ? (
+                      <img src={logoPreview} alt="Logo" className="w-20 h-20 object-contain" onClick={() => document.getElementById('logo-upload')?.click()} />
+                    ) : (
+                      <>
+                        <FiUpload size={20} className="text-gray-300 mb-2" />
+                        <p className="text-xs text-gray-400">Drag & drop or click</p>
+                        <p className="text-[11px] text-gray-300 mt-0.5">PNG or JPG</p>
+                      </>
+                    )}
+                  </div>
+                  {logoPreview && (
+                    <button type="button" onClick={() => document.getElementById('logo-upload')?.click()} className="text-xs text-gray-400 hover:text-gray-700 underline underline-offset-2 transition-colors">
+                      Change logo
+                    </button>
                   )}
+                </>
+              ) : (
+                <div className="w-full h-36 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center">
+                  {logoPreview
+                    ? <img src={logoPreview} alt="Logo" className="w-20 h-20 object-contain" />
+                    : <p className="text-xs text-gray-400">No logo uploaded</p>
+                  }
                 </div>
-              </div>
+              )}
+            </div>
 
-              {/* When a logo exists show the Upload/Change button below the box */}
-              {logoPreview && (
-                <div className="mt-3 flex justify-center">
-                  <button type="button" onClick={() => document.getElementById('logo-upload')?.click()} className="border px-4 py-2 rounded hover:bg-gray-100">Change Logo</button>
-                </div>
+            {/* Fields */}
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {canEdit ? (
+                <>
+                  {[
+                    { label: 'Company Name',    name: 'name',    placeholder: 'Acme Inc.' },
+                    { label: 'Company Website', name: 'website', placeholder: 'https://acme.com' },
+                  ].map(f => (
+                    <div key={f.name}>
+                      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">{f.label}</label>
+                      <input name={f.name} value={(companyDetails as any)[f.name]} onChange={handleChange} placeholder={f.placeholder}
+                        className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-gray-400 transition-colors" />
+                    </div>
+                  ))}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Industry</label>
+                    <Select
+                      value={companyDetails.industry}
+                      onChange={val => setCompanyDetails(prev => ({ ...prev, industry: val }))}
+                      options={[
+                        { value: 'Construction', label: 'Construction' },
+                        { value: 'Technology',   label: 'Technology'   },
+                        { value: 'Healthcare',   label: 'Healthcare'   },
+                        { value: 'Education',    label: 'Education'    },
+                        { value: 'Finance',      label: 'Finance'      },
+                        { value: 'Other',        label: 'Other'        },
+                      ]}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Company Size</label>
+                    <Select
+                      value={companyDetails.size}
+                      onChange={val => setCompanyDetails(prev => ({ ...prev, size: val }))}
+                      options={[
+                        { value: '1-10',     label: '1 – 10'      },
+                        { value: '11-50',    label: '11 – 50'     },
+                        { value: '51-200',   label: '51 – 200'    },
+                        { value: '201-500',  label: '201 – 500'   },
+                        { value: '500+',     label: '500+'        },
+                      ]}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Country</label>
+                    <Select
+                      value={companyDetails.country === 'Select Country' ? '' : companyDetails.country}
+                      onChange={val => setCompanyDetails(prev => ({ ...prev, country: val, city: '' }))}
+                      options={countries.map(c => ({ value: c.name, label: c.name }))}
+                      placeholder="Select Country"
+                      loading={loadingCountries}
+                      searchable
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">City</label>
+                    <Select
+                      value={(companyDetails as any).city === 'Select City' ? '' : ((companyDetails as any).city || '')}
+                      onChange={val => setCompanyDetails(prev => ({ ...prev, city: val }))}
+                      options={cities.map(ct => ({ value: ct.name, label: ct.name }))}
+                      placeholder="Select City"
+                      loading={loadingCities}
+                      disabled={!companyDetails.country || companyDetails.country === 'Select Country'}
+                      searchable
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  {readonlyField('Company Name', companyDetails.name)}
+                  {readonlyField('Company Website', companyDetails.website)}
+                  {readonlyField('Industry', companyDetails.industry)}
+                  {readonlyField('Company Size', companyDetails.size)}
+                  {readonlyField('Country', companyDetails.country !== 'Select Country' ? companyDetails.country : '')}
+                  {readonlyField('City', (companyDetails as any).city !== 'Select City' ? (companyDetails as any).city : '')}
+                </>
               )}
             </div>
           </div>
 
-          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Company Name</label>
-              <input
-                name="name"
-                value={companyDetails.name}
-                onChange={handleChange}
-                className="p-3 rounded bg-[#f7f7f7] w-full"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Company Type</label>
-              <select
-                name="industry"
-                value={companyDetails.industry}
-                onChange={handleChange}
-                className="p-3 rounded bg-[#f7f7f7] w-full"
-              >
-                <option>Construction</option>
-                <option>Technology</option>
-                <option>Healthcare</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Company Website</label>
-              <input
-                name="website"
-                value={companyDetails.website}
-                onChange={handleChange}
-                className="p-3 rounded bg-[#f7f7f7] w-full"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Company Size</label>
-              <select
-                name="size"
-                value={companyDetails.size}
-                onChange={handleChange}
-                className="p-3 rounded bg-[#f7f7f7] w-full"
-              >
-                <option>1-10</option>
-                <option>11-50</option>
-                <option>51-200</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Country</label>
-              <select
-                name="country"
-                value={companyDetails.country}
-                onChange={(e) => {
-                  // Reset city when country changes
-                  setCompanyDetails({ ...companyDetails, country: e.target.value, city: 'Select City' });
-                }}
-                className="p-3 rounded bg-[#f7f7f7] w-full"
-              >
-                <option>Select Country</option>
-                {loadingCountries ? (
-                  <option>Loading countries...</option>
-                ) : (
-                  countries.map((c) => (
-                    <option key={c.code} value={c.name}>{c.name}</option>
-                  ))
-                )}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">City</label>
-              <select
-                name="city"
-                value={(companyDetails as any).city || 'Select City'}
-                onChange={handleChange}
-                className="p-3 rounded bg-[#f7f7f7] w-full"
-              >
-                <option>Select City</option>
-                {loadingCities ? (
-                  <option>Loading cities...</option>
-                ) : (
-                  cities.map((ct) => (
-                    <option key={ct.code} value={ct.name}>{ct.name}</option>
-                  ))
-                )}
-              </select>
-            </div>
+          {/* Description */}
+          <div className="mb-4">
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Company Description</label>
+            {canEdit ? (
+              <textarea name="description" value={companyDetails.description} onChange={handleChange} rows={4}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-gray-400 transition-colors resize-none" />
+            ) : (
+              <div className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-600 min-h-[96px]">
+                {companyDetails.description || <span className="text-gray-400">No description provided</span>}
+              </div>
+            )}
           </div>
-        </div>
 
-        <div className="mb-6">
-          <label className="block text-sm font-medium mb-1">Company Description</label>
-          <textarea
-            name="description"
-            value={companyDetails.description}
-            onChange={handleChange}
-            className="border border-gray-200 w-full h-40 p-3 rounded bg-white"
-          />
-        </div>
-
-        {saveError && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {saveError}
-          </div>
-        )}
-
-        <div className="flex space-x-4">
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="bg-white border px-6 py-3 rounded-md text-sm cursor-pointer hover:bg-black hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSaving ? 'Saving...' : 'Save Changes'}
-          </button>
-          <button onClick={handleCancel} className="bg-white border px-6 py-3 rounded-md text-sm cursor-pointer hover:bg-black hover:text-white">Cancel</button>
+          {saveError && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
+              <FiAlertCircle size={14} className="shrink-0" />{saveError}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Actions — only visible to admin */}
+      {canEdit && (
+        <div className="flex items-center justify-end gap-3 pt-1">
+          <button onClick={handleCancel} className="px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors">
+            Cancel
+          </button>
+          <button onClick={handleSave} disabled={isSaving}
+            className="px-5 py-2.5 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+            {isSaving ? 'Saving…' : 'Save Changes'}
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -915,56 +1063,266 @@ export const NotificationPreferencePage = () => {
     }
   };
 
+  const notifItems = [
+    { key: 'emailNotifications' as keyof typeof toggles, icon: FiMail,        title: 'Email Notifications',       desc: 'Alerts about credential updates, expiries, and system events.' },
+    { key: 'employeeUpdates'    as keyof typeof toggles, icon: FiUsers,        title: 'Employee Updates',          desc: 'Changes to employee accounts, roles, or activities.' },
+    { key: 'expirySummary'      as keyof typeof toggles, icon: FiBell,         title: 'Expiry Summary Emails',     desc: 'Weekly digest of credentials expiring soon.' },
+    { key: 'criticalAlerts'     as keyof typeof toggles, icon: FiAlertCircle,  title: 'Critical Alerts Only',      desc: 'Only urgent events — expired credentials or failed uploads.' },
+  ];
+
   return (
-    <div className="w-full min-h-screen bg-[#f5f5f5] p-4 md:p-8 flex flex-col">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 md:p-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6 border-b border-gray-300 pb-3">Notification Preferences</h2>
+    <div className="space-y-4">
 
-        <div className="mb-6">
-          <label className="block text-sm font-medium mb-2">Notification Frequency</label>
-          <select
-            value={frequency}
-            onChange={handleFrequencyChange}
-            className="p-3 rounded bg-[#f7f7f7] w-full md:w-64"
-          >
-            <option>7 days before</option>
-            <option>15 days before</option>
-            <option>30 days before (default)</option>
-          </select>
+      {/* Frequency */}
+      <div className="bg-white rounded-xl border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3 rounded-t-xl rounded-t-xl">
+          <div className="w-7 h-7 rounded-lg bg-gray-100 grid place-items-center">
+            <FiBell size={14} className="text-gray-500" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900">Notification Preferences</h2>
+            <p className="text-xs text-gray-400">Control when and how you are notified</p>
+          </div>
         </div>
 
-        {/* Toggles */}
-        <div className="space-y-6">
-          {[
-            { key: 'emailNotifications' as keyof typeof toggles, title: "Email Notifications", desc: "Receive email alerts about credential updates, expiries, and important system events." },
-            { key: 'employeeUpdates' as keyof typeof toggles, title: "Employee updates", desc: "Stay informed about changes made to employee accounts, roles, or activities." },
-            { key: 'expirySummary' as keyof typeof toggles, title: "Receive Expiry Summary Emails", desc: "Get a summary email showing all credentials that are expiring soon for easier monitoring." },
-            { key: 'criticalAlerts' as keyof typeof toggles, title: "Critical Alerts Only", desc: "Limit notifications to urgent events such as expired credentials or failed uploads." }
-          ].map((item, index) => (
-            <div key={index} className="flex justify-between items-center">
-              <div>
-                <p className="font-medium">{item.title}</p>
-                <p className="text-gray-500 text-sm">{item.desc}</p>
+        <div className="p-6">
+          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Alert me before expiry</label>
+          <div className="w-full md:w-56">
+            <Select
+              value={frequency}
+              onChange={val => handleFrequencyChange({ target: { value: val } } as any)}
+              options={[
+                { value: '7 days before',            label: '7 days before'            },
+                { value: '15 days before',           label: '15 days before'           },
+                { value: '30 days before (default)', label: '30 days before (default)' },
+              ]}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Toggle rows */}
+      <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+        {notifItems.map((item) => {
+          const Icon = item.icon;
+          const active = toggles[item.key];
+          return (
+            <div key={item.key} className="flex items-center gap-4 px-6 py-4">
+              <div className={`w-8 h-8 rounded-lg grid place-items-center shrink-0 transition-colors ${active ? 'bg-black' : 'bg-gray-100'}`}>
+                <Icon size={14} className={active ? 'text-white' : 'text-gray-400'} />
               </div>
-              <div
-                className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${toggles[item.key] ? 'bg-black' : 'bg-gray-300'}`}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-800">{item.title}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{item.desc}</p>
+              </div>
+              {/* Toggle */}
+              <button
+                role="switch"
+                aria-checked={active}
                 onClick={() => handleToggle(item.key)}
+                className={`relative w-11 h-6 rounded-full transition-colors shrink-0 focus:outline-none ${active ? 'bg-black' : 'bg-gray-200'}`}
               >
-                <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform ${toggles[item.key] ? 'translate-x-6' : 'translate-x-0.5'}`}></div>
-              </div>
+                <span className={`block w-4 h-4 bg-white rounded-full absolute top-1 transition-transform shadow-sm ${active ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
             </div>
-          ))}
+          );
+        })}
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center justify-end pt-1">
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="px-5 py-2.5 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {isSaving ? 'Saving…' : 'Save Changes'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ===================== USER MANAGEMENT PAGE (Admin only) =====================
+export const UserManagementPage = () => {
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editValues, setEditValues] = useState<{ role: string; department: string }>({ role: '', department: '' });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState<number | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await employeesService.listEmployees();
+        setEmployees(data);
+      } catch (err) {
+        console.error('Failed to load employees:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const startEdit = (emp: any) => {
+    setEditingId(emp.id);
+    setEditValues({ role: emp.role || '', department: emp.department || '' });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditValues({ role: '', department: '' });
+  };
+
+  const saveEdit = async (emp: any) => {
+    setSaving(true);
+    try {
+      await employeesService.updateEmployee(emp.id, {
+        role: editValues.role,
+        first_name: emp.first_name,
+        last_name: emp.last_name,
+        email: emp.email,
+      });
+      setEmployees(prev => prev.map(e => e.id === emp.id ? { ...e, role: editValues.role, department: editValues.department } : e));
+      setSaved(emp.id);
+      setTimeout(() => setSaved(null), 2000);
+      setEditingId(null);
+    } catch (err) {
+      console.error('Failed to update employee:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const roleBadgeColor: Record<string, string> = {
+    Admin:    'bg-gray-900 text-white',
+    Employee: 'bg-blue-50 text-blue-700',
+    Viewer:   'bg-purple-50 text-purple-700',
+    User:     'bg-gray-100 text-gray-600',
+  };
+
+  const avatarColor = (name: string) => {
+    const colors = ['bg-blue-100 text-blue-700','bg-emerald-100 text-emerald-700','bg-amber-100 text-amber-700','bg-purple-100 text-purple-700','bg-rose-100 text-rose-700'];
+    return colors[name.charCodeAt(0) % colors.length];
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-48 gap-1.5">
+        {[0,1,2].map(i => <span key={i} className="w-2 h-2 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: `${i*0.15}s` }} />)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-xl border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3 rounded-t-xl">
+          <div className="w-7 h-7 rounded-lg bg-gray-100 grid place-items-center">
+            <FiUsers size={14} className="text-gray-500" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900">Team Members</h2>
+            <p className="text-xs text-gray-400">Assign roles and departments to your team</p>
+          </div>
         </div>
 
-        <div className="flex space-x-4 mt-8">
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="bg-white border px-6 py-3 rounded-md text-sm cursor-pointer hover:bg-black hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSaving ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
+        {employees.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-14 gap-2">
+            <div className="w-10 h-10 rounded-full bg-gray-100 grid place-items-center text-gray-300">○</div>
+            <p className="text-sm text-gray-400">No team members found</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-50">
+            {employees.map(emp => {
+              const fullName = `${emp.first_name} ${emp.last_name}`;
+              const isEditing = editingId === emp.id;
+              const wasSaved = saved === emp.id;
+              return (
+                <div key={emp.id} className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/50 transition-colors">
+
+                  {/* Avatar */}
+                  <div className={`w-9 h-9 rounded-full grid place-items-center text-xs font-semibold shrink-0 ${avatarColor(fullName)}`}>
+                    {emp.first_name?.[0]?.toUpperCase()}{emp.last_name?.[0]?.toUpperCase()}
+                  </div>
+
+                  {/* Name + email */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{fullName}</p>
+                    <p className="text-xs text-gray-400 truncate">{emp.email}</p>
+                  </div>
+
+                  {/* Role */}
+                  <div className="w-36 shrink-0">
+                    {isEditing ? (
+                      <Select
+                        value={editValues.role}
+                        onChange={val => setEditValues(v => ({ ...v, role: val }))}
+                        options={[
+                          { value: 'Admin',    label: 'Admin'    },
+                          { value: 'Employee', label: 'Employee' },
+                          { value: 'Viewer',   label: 'Viewer'   },
+                        ]}
+                      />
+                    ) : (
+                      <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${roleBadgeColor[emp.role] ?? 'bg-gray-100 text-gray-600'}`}>
+                        {emp.role || 'No role'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Department */}
+                  <div className="w-36 shrink-0 hidden md:block">
+                    {isEditing ? (
+                      <input
+                        value={editValues.department}
+                        onChange={e => setEditValues(v => ({ ...v, department: e.target.value }))}
+                        placeholder="e.g. Engineering"
+                        className="w-full px-2.5 py-2 text-xs border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-gray-400 transition-colors"
+                      />
+                    ) : (
+                      <span className="text-xs text-gray-400">{emp.department || '—'}</span>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {isEditing ? (
+                      <>
+                        <button
+                          onClick={() => saveEdit(emp)}
+                          disabled={saving}
+                          className="w-8 h-8 rounded-lg bg-black text-white grid place-items-center hover:bg-gray-800 transition-colors disabled:opacity-40"
+                        >
+                          <FiCheck size={13} />
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          className="w-8 h-8 rounded-lg border border-gray-200 grid place-items-center text-gray-500 hover:bg-gray-50 transition-colors"
+                        >
+                          <FiX size={13} />
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => startEdit(emp)}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                          wasSaved
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-600'
+                            : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        {wasSaved ? 'Saved ✓' : 'Edit'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -973,56 +1331,46 @@ export const NotificationPreferencePage = () => {
 // ===================== MAIN SETTINGS COMPONENT =====================
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('account');
+  const { canEdit } = useUserRole();
 
   const renderActivePage = () => {
     switch (activeTab) {
-      case 'account':
-        return <AccountInformationPage />;
-      case 'company':
-        return <CompanyDetailsPage />;
-      case 'notification':
-        return <NotificationPreferencePage />;
-      default:
-        return <AccountInformationPage />;
+      case 'account':      return <AccountInformationPage />;
+      case 'company':      return <CompanyDetailsPage />;
+      case 'notification': return <NotificationPreferencePage />;
+      case 'team':         return <UserManagementPage />;
+      default:             return <AccountInformationPage />;
     }
   };
 
+  const tabs = [
+    { id: 'account',      label: 'Account',       icon: FiUser,      adminOnly: false },
+    { id: 'company',      label: 'Company',        icon: FiBriefcase, adminOnly: false },
+    { id: 'notification', label: 'Notifications',  icon: FiBell,      adminOnly: false },
+    { id: 'team',         label: 'Team',           icon: FiUsers,     adminOnly: true  },
+  ].filter(t => !t.adminOnly || canEdit);
+
   return (
-    <div className="w-full min-h-screen bg-[#f5f5f5] pt-4 pb-8 pl-4 pr-4 md:pt-8 md:pb-12 md:pl-8 md:pr-8 flex flex-col">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
-        <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-8 overflow-x-auto md:overflow-x-visible bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <button
-            className={`pb-3 px-2 whitespace-nowrap font-medium transition-colors ${
-              activeTab === 'account'
-                ? 'border-b-2 border-black text-black'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            onClick={() => setActiveTab('account')}
-          >
-            Account Information
-          </button>
-          <button
-            className={`pb-3 px-2 whitespace-nowrap font-medium transition-colors ${
-              activeTab === 'company'
-                ? 'border-b-2 border-black text-black'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            onClick={() => setActiveTab('company')}
-          >
-            Company Details
-          </button>
-          <button
-            className={`pb-3 px-2 whitespace-nowrap font-medium transition-colors ${
-              activeTab === 'notification'
-                ? 'border-b-2 border-black text-black'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            onClick={() => setActiveTab('notification')}
-          >
-            Notification Preferences
-          </button>
-        </div>
+    <div className="space-y-6">
+
+      {/* Tab bar */}
+      <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+        {tabs.map(t => {
+          const Icon = t.icon;
+          const active = activeTab === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                active ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Icon size={14} />
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
       {renderActivePage()}
