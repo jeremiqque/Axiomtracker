@@ -1,15 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import addNew from "../assets/add new.png";
-import upload from "../assets/upload.png";
-import search from "../assets/search.png";
-import view from "../assets/view.png";
-import background from "../assets/background.png";
+import { FiPlus, FiUpload, FiSearch, FiGrid, FiAward, FiCheckCircle, FiClock, FiXCircle } from "react-icons/fi";
 import Activities from "./Activities";
 import { credentialsService } from "../lib/credentialsService";
+import { useUserRole } from "../hooks/useUserRole";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { canEditCredentials } = useUserRole();
   const [stats, setStats] = useState({ total: 0, active: 0, expiringSoon: 0, expired: 0 });
 
   useEffect(() => {
@@ -60,34 +58,84 @@ export default function Dashboard() {
     <div className="space-y-10 bg-white">
 
       {/* DASHBOARD OVERVIEW */}
-      <div className="w-full bg-cover bg-top rounded-xl text-white p-4 sm:p-6 md:p-8" style={{ backgroundImage: `url(${background})` }}>
-        <h2 className="text-base sm:text-lg md:text-xl font-semibold mb-4">Dashboard Overview</h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-
-          <div className="bg-white text-black p-3 sm:p-4 md:p-5 rounded-lg">
-            <p className="text-xs text-gray-500">Total Certificates</p>
-            <h1 className="text-2xl sm:text-3xl font-semibold">{stats.total}</h1>
+      <div className="w-full rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 50%, #111 100%)' }}>
+        {/* Banner header */}
+        <div className="px-6 pt-6 pb-4 flex items-start justify-between">
+          <div>
+            <h2 className="text-white font-semibold text-base">Dashboard Overview</h2>
+            <p className="text-gray-400 text-xs mt-0.5">Track your certificate status at a glance</p>
           </div>
+          {stats.total > 0 && (
+            <div className="text-right hidden sm:block">
+              <p className="text-[11px] text-gray-400 mb-1">Health score</p>
+              <div className="flex items-center gap-2">
+                <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-emerald-400 transition-all duration-700"
+                    style={{ width: `${stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}%` }}
+                  />
+                </div>
+                <span className="text-xs font-medium text-emerald-400">
+                  {stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}%
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
 
-          <div className="bg-white text-black p-3 sm:p-4 md:p-5 rounded-lg">
-            <p className="text-xs text-gray-500">Active</p>
-            <h1 className="text-2xl sm:text-3xl font-semibold">{stats.active}</h1>
-          </div>
-
-          <div className="bg-white text-black p-3 sm:p-4 md:p-5 rounded-lg">
-            <p className="text-xs text-gray-500">Expiring Soon (30 Days)</p>
-            <h1 className="text-2xl sm:text-3xl font-semibold">{stats.expiringSoon}</h1>
-          </div>
-
-          <div className="bg-white text-black p-3 sm:p-4 md:p-5 rounded-lg relative">
-            <p className="text-xs text-gray-500">Expired</p>
-            <h1 className="text-2xl sm:text-3xl font-semibold">{stats.expired}</h1>
-
-            {/* <div className="absolute bottom-3 right-3 bg-red-600 text-white text-[10px] px-2 py-1 rounded">
-              EPS 10
-            </div> */}
-          </div>
+        {/* Stat cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-white/5 border-t border-white/5">
+          {[
+            {
+              label: 'Total',
+              sub: 'All certificates',
+              value: stats.total,
+              icon: FiAward,
+              iconBg: 'bg-white/10',
+              iconColor: 'text-white',
+              valueColor: 'text-white',
+            },
+            {
+              label: 'Active',
+              sub: 'Valid & in use',
+              value: stats.active,
+              icon: FiCheckCircle,
+              iconBg: 'bg-emerald-500/15',
+              iconColor: 'text-emerald-400',
+              valueColor: 'text-emerald-400',
+            },
+            {
+              label: 'Expiring Soon',
+              sub: 'Within 30 days',
+              value: stats.expiringSoon,
+              icon: FiClock,
+              iconBg: 'bg-amber-500/15',
+              iconColor: 'text-amber-400',
+              valueColor: 'text-amber-400',
+            },
+            {
+              label: 'Expired',
+              sub: 'Needs renewal',
+              value: stats.expired,
+              icon: FiXCircle,
+              iconBg: 'bg-red-500/15',
+              iconColor: 'text-red-400',
+              valueColor: 'text-red-400',
+            },
+          ].map(({ label, sub, value, icon: Icon, iconBg, iconColor, valueColor }) => (
+            <div key={label} className="bg-white/[0.03] hover:bg-white/[0.06] transition-colors px-5 py-5 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-gray-300 font-medium">{label}</p>
+                <div className={`w-7 h-7 rounded-lg grid place-items-center ${iconBg}`}>
+                  <Icon size={13} className={iconColor} />
+                </div>
+              </div>
+              <div>
+                <p className={`text-3xl font-bold leading-none tracking-tight ${valueColor}`}>{value}</p>
+                <p className="text-[11px] text-gray-400 mt-1.5">{sub}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -95,55 +143,73 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
 
         {/* RECENT ACTIVITIES */}
-          <div className="bg-white rounded-xl p-4 sm:p-6 col-span-1 lg:col-span-2 border border-gray-400 flex flex-col">
+          <div className="bg-white rounded-xl p-4 sm:p-6 col-span-1 lg:col-span-2 border border-gray-200 flex flex-col">
             <Activities />
           </div>
 
         {/* QUICK ACTIONS */}
-        <div className="bg-white rounded-xl p-4 sm:p-6 border space-y-3 sm:space-y-4 border-gray-400">
+        <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200">
+          <h3 className="font-semibold text-sm sm:text-base mb-4 text-gray-900">Quick Actions</h3>
 
-          <h3 className="font-semibold text-sm sm:text-base mb-3">Quick Actions</h3>
+          <div className="grid grid-cols-2 gap-3">
 
-          <div className="p-2 sm:p-3 md:p-4 rounded-lg cursor-pointer flex items-start gap-2 sm:gap-3" onClick={() => navigate('/dashboard/credentials/new')}>
-            <img src={addNew} alt="Add New" className="w-8 h-8 sm:w-10 sm:h-10 md:w-14 md:h-14 mt-1 flex-shrink-0" />
-            <div className="min-w-0">
-              <h4 className="font-semibold text-xs sm:text-sm md:text-base">Add New Certificate/License</h4>
-              <p className="text-xs text-gray-600 line-clamp-2">
-                Create a new certification record with issue & expiry dates.
-              </p>
-            </div>
+            {canEditCredentials && (
+              <button
+                onClick={() => navigate('/dashboard/credentials/new')}
+                className="group flex flex-col items-start gap-3 p-4 rounded-xl border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50 transition-all duration-200 text-left"
+              >
+                <div className="w-9 h-9 rounded-lg bg-emerald-100 grid place-items-center group-hover:bg-emerald-200 transition-colors">
+                  <FiPlus size={17} className="text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-800 leading-snug">Add Certificate</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5 leading-snug">New record with expiry dates</p>
+                </div>
+              </button>
+            )}
+
+            {canEditCredentials && (
+              <button
+                onClick={() => navigate('/dashboard/credentials')}
+                className="group flex flex-col items-start gap-3 p-4 rounded-xl border border-gray-100 hover:border-amber-200 hover:bg-amber-50 transition-all duration-200 text-left"
+              >
+                <div className="w-9 h-9 rounded-lg bg-amber-100 grid place-items-center group-hover:bg-amber-200 transition-colors">
+                  <FiUpload size={16} className="text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-800 leading-snug">Upload PDF</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5 leading-snug">Attach license documents</p>
+                </div>
+              </button>
+            )}
+
+            <button
+              onClick={() => navigate('/dashboard/credentials')}
+              className="group flex flex-col items-start gap-3 p-4 rounded-xl border border-gray-100 hover:border-blue-200 hover:bg-blue-50 transition-all duration-200 text-left"
+            >
+              <div className="w-9 h-9 rounded-lg bg-blue-100 grid place-items-center group-hover:bg-blue-200 transition-colors">
+                <FiSearch size={16} className="text-blue-600" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-800 leading-snug">Find Certificate</p>
+                <p className="text-[11px] text-gray-400 mt-0.5 leading-snug">Search by name or type</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('activities')}
+              className="group flex flex-col items-start gap-3 p-4 rounded-xl border border-gray-100 hover:border-purple-200 hover:bg-purple-50 transition-all duration-200 text-left"
+            >
+              <div className="w-9 h-9 rounded-lg bg-purple-100 grid place-items-center group-hover:bg-purple-200 transition-colors">
+                <FiGrid size={16} className="text-purple-600" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-800 leading-snug">View All</p>
+                <p className="text-[11px] text-gray-400 mt-0.5 leading-snug">Active, expiring & expired</p>
+              </div>
+            </button>
+
           </div>
-
-          <div className="p-2 sm:p-3 md:p-4 rounded-lg cursor-pointer flex items-start gap-2 sm:gap-3" onClick={() => navigate('/dashboard/credentials')}>
-            <img src={upload} alt="Upload" className="w-8 h-8 sm:w-10 sm:h-10 md:w-14 md:h-14 mt-1 flex-shrink-0" />
-            <div className="min-w-0">
-              <h4 className="font-semibold text-xs sm:text-sm md:text-base">Upload License PDF</h4>
-              <p className="text-xs text-gray-600 line-clamp-2">
-                Attach supporting documents to certificate records.
-              </p>
-            </div>
-          </div>
-
-          <div className="p-2 sm:p-3 md:p-4 rounded-lg cursor-pointer flex items-start gap-2 sm:gap-3" onClick={() => navigate('/dashboard/credentials')}>
-            <img src={search} alt="View Certificates" className="w-8 h-8 sm:w-10 sm:h-10 md:w-14 md:h-14 mt-1 flex-shrink-0" />
-            <div className="min-w-0">
-              <h4 className="font-semibold text-xs sm:text-sm md:text-base">View Certificates</h4>
-              <p className="text-xs text-gray-600 line-clamp-2">
-                Find any certificate instantly by name, number or type.
-              </p>
-            </div>
-          </div>
-
-          <div className="p-2 sm:p-3 md:p-4 rounded-lg cursor-pointer flex items-start gap-2 sm:gap-3" onClick={() => navigate('activities')}>
-            <img src={view} alt="View All" className="w-8 h-8 sm:w-10 sm:h-10 md:w-14 md:h-14 mt-1 flex-shrink-0" />
-            <div className="min-w-0">
-              <h4 className="font-semibold text-xs sm:text-sm md:text-base">View All</h4>
-              <p className="text-xs text-gray-600 line-clamp-2">
-                See all of your active, expiring, and expired certificates.
-              </p>
-            </div>
-          </div>
-
         </div>
       </div>
     </div>
