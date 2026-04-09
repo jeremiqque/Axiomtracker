@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import Navbar from "./components/Navbar";
@@ -28,6 +28,19 @@ import ResetConfirm from "./components/ResetConfirm";
 import ResetPassword from "./components/ResetPassword";
 import Settings from "./components/Settings";
 import supabase from "./lib/supabase";
+import { useUserRole } from "./hooks/useUserRole";
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { isAdmin, loading } = useUserRole();
+  if (loading) return null;
+  return isAdmin ? <>{children}</> : <Navigate to="/dashboard" replace />;
+}
+
+function CredentialEditRoute({ children }: { children: React.ReactNode }) {
+  const { canEditCredentials, loading } = useUserRole();
+  if (loading) return null;
+  return canEditCredentials ? <>{children}</> : <Navigate to="/dashboard/credentials" replace />;
+}
 
 function AppContent() {
   const navigate = useNavigate();
@@ -97,10 +110,10 @@ function AppContent() {
         <Route path="activities" element={<Activities />} />
         <Route path="credentials" element={<Credentials />} />
         <Route path="entity" element={<Entity />} />
-        <Route path="invite" element={<Empolyee />} />
-        <Route path="entity/add" element={<AddEmployee />} />
-        <Route path="credentials/new" element={<AddCredentials />} />
-        <Route path="credentials/company" element={<CompanyCredentials />} />
+        <Route path="invite" element={<AdminRoute><Empolyee /></AdminRoute>} />
+        <Route path="entity/add" element={<AdminRoute><AddEmployee /></AdminRoute>} />
+        <Route path="credentials/new" element={<CredentialEditRoute><AddCredentials /></CredentialEditRoute>} />
+        <Route path="credentials/company" element={<CredentialEditRoute><CompanyCredentials /></CredentialEditRoute>} />
         <Route path="credentials/view" element={<ViewDetails />} />
         <Route path="settings" element={<Settings />} />
       </Route>
