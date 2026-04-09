@@ -9,6 +9,7 @@ const CreateAccountPage: React.FC = () => {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('Viewer');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -67,7 +68,7 @@ const CreateAccountPage: React.FC = () => {
           if (userData.email) {
             employeesService.createEmployee({
               email: userData.email,
-              role: 'User',
+              role,
               first_name: userData.firstName,
               last_name: userData.lastName,
               date_of_birth: '',
@@ -157,7 +158,21 @@ const CreateAccountPage: React.FC = () => {
                       <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email address" className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black placeholder-gray-400 text-sm" /> 
                       </div>
                       
-                       {/* Password */} 
+                      {/* Role */}
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Role</label>
+                        <select
+                          value={role}
+                          onChange={(e) => setRole(e.target.value)}
+                          className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-sm text-gray-700"
+                        >
+                          <option value="Viewer">Viewer</option>
+                          <option value="Employee">Employee</option>
+                          <option value="Admin">Admin</option>
+                        </select>
+                      </div>
+
+                       {/* Password */}
                        <div> 
                         <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2"> Password </label>
                          <div className="relative">
