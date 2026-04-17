@@ -13,6 +13,7 @@
     "@emailjs/browser": "^4.4.1",
     "@supabase/supabase-js": "^2.88.0",
     "@tailwindcss/vite": "^4.1.17",
+    "country-state-city": "^3.2.1",
     "lucide-react": "^0.556.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",

@@ -8,7 +8,7 @@ import { FiArrowRight, FiShield, FiBell, FiUsers } from "react-icons/fi";
 
 export default function Hero() {
   return (
-    <section className="relative w-full min-h-screen flex flex-col items-center justify-center overflow-hidden">
+    <section id="hero" className="relative w-full min-h-screen flex flex-col items-center justify-center overflow-hidden">
 
       {/* Background */}
       <img

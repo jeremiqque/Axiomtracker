@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { employeesService } from "../lib/supabaseService";
+import supabase from "../lib/supabase";
 
 export function useUserRole() {
   const [role, setRole] = useState<string | null>(null);
@@ -9,7 +10,14 @@ export function useUserRole() {
     const fetchRole = async () => {
       try {
         const employee = await employeesService.getCurrentUserEmployee();
-        setRole(employee?.role ?? null);
+        if (employee?.role) {
+          setRole(employee.role);
+          return;
+        }
+        // Fallback: read role from auth user metadata (set during signup)
+        const { data: { user } } = await supabase.auth.getUser();
+        const metaRole = (user?.user_metadata as Record<string, string> | undefined)?.role ?? null;
+        setRole(metaRole);
       } catch (err) {
         console.error("Error fetching role:", err);
         setRole(null);

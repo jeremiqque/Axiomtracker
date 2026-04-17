@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { employeesService, companySettingsService } from "../lib/supabaseService";
+import { employeesService, COMPANY_SETTINGS_ID } from "../lib/supabaseService";
+import { toast } from "../lib/toast";
 import Select from "./Select";
 import supabase from "../lib/supabase";
-import { fetchCountries, fetchCities } from "../lib/geoService";
-import type { Country, City } from "../lib/geoService";
-import { FiBell, FiUsers, FiMail, FiAlertCircle, FiUser, FiLock, FiUpload, FiBriefcase, FiShield, FiCheck, FiX, FiCamera } from "react-icons/fi";
+import { fetchCountries, fetchCities, fetchCitiesByState, fetchStates } from "../lib/geoService";
+import type { CountryOption as Country, CityOption as City, StateOption as State } from "../lib/geoService";
+import { FiBell, FiUsers, FiMail, FiAlertCircle, FiUser, FiLock, FiUpload, FiBriefcase, FiShield, FiCheck, FiX, FiCamera, FiGlobe, FiMapPin, FiBarChart2 } from "react-icons/fi";
 import { useUserRole } from "../hooks/useUserRole";
 
 // ===================== ACCOUNT INFORMATION PAGE =====================
@@ -200,11 +201,11 @@ export const AccountInformationPage = () => {
 
     // Show success messages
     if (passwordChanged && personalInfoChanged) {
-      alert('Password and personal information updated successfully!');
+      toast('Password and personal information updated successfully!');
     } else if (passwordChanged) {
-      alert('Password changed successfully!');
+      toast('Password changed successfully!');
     } else if (personalInfoChanged) {
-      alert('Personal information updated successfully!');
+      toast('Personal information updated successfully!');
     }
   };
 
@@ -247,195 +248,174 @@ export const AccountInformationPage = () => {
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { alert('Please select an image file.'); return; }
-    if (file.size > 3 * 1024 * 1024) { alert('Image must be under 3MB.'); return; }
+    if (!file.type.startsWith('image/')) { toast('Please select an image file.', 'warning'); return; }
+    if (file.size > 3 * 1024 * 1024) { toast('Image must be under 3MB.', 'warning'); return; }
     setAvatarFile(file);
     setAvatarPreview(URL.createObjectURL(file));
   };
 
+  const inputCls = "w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 transition-all placeholder:text-gray-300";
+  const labelCls = "block text-xs font-semibold text-gray-500 mb-1.5 tracking-wide";
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
 
       {/* Personal Information */}
-      <div className="bg-white rounded-xl border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3 rounded-t-xl">
-          <div className="w-7 h-7 rounded-lg bg-gray-100 grid place-items-center">
-            <FiUser size={14} className="text-gray-500" />
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {/* Card header */}
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-gray-900 grid place-items-center shrink-0">
+            <FiUser size={14} className="text-white" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-gray-900">Personal Information</h2>
-            <p className="text-xs text-gray-400">Update your profile details</p>
+            <h2 className="text-sm font-bold text-gray-900">Personal Information</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Update your name, email and photo</p>
           </div>
         </div>
 
-        <div className="p-6">
-          {/* Avatar row */}
-          <div className="flex items-center gap-5 mb-6 pb-6 border-b border-gray-100">
-            {/* Clickable avatar */}
-            <div className="relative shrink-0 group cursor-pointer" onClick={() => document.getElementById('avatar-upload')?.click()}>
-              <input
-                id="avatar-upload"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleAvatarChange}
-              />
-              {/* Avatar circle */}
+        <div className="p-5">
+          {/* Avatar — centred on mobile */}
+          <div className="flex flex-col items-center gap-3 mb-6 pb-6 border-b border-gray-100 sm:flex-row sm:items-center sm:gap-5">
+            <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+
+            <div className="relative group cursor-pointer shrink-0" onClick={() => document.getElementById('avatar-upload')?.click()}>
               {avatarPreview ? (
-                <img
-                  src={avatarPreview}
-                  alt="Profile"
-                  className="w-16 h-16 rounded-full object-cover ring-2 ring-gray-200"
-                />
+                <img src={avatarPreview} alt="Profile" className="w-20 h-20 rounded-full object-cover ring-4 ring-gray-100" />
               ) : (
-                <div className="w-16 h-16 rounded-full bg-black text-white grid place-items-center text-xl font-semibold ring-2 ring-gray-200">
+                <div className="w-20 h-20 rounded-full bg-gray-900 text-white grid place-items-center text-2xl font-bold ring-4 ring-gray-100">
                   {initials}
                 </div>
               )}
-              {/* Camera overlay on hover */}
               <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity grid place-items-center">
-                <FiCamera size={16} className="text-white" />
+                <FiCamera size={18} className="text-white" />
               </div>
-              {/* Small camera badge */}
-              <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-white border border-gray-200 rounded-full grid place-items-center shadow-sm">
-                <FiCamera size={10} className="text-gray-500" />
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white border-2 border-gray-100 rounded-full grid place-items-center shadow-sm">
+                <FiCamera size={11} className="text-gray-600" />
               </div>
             </div>
 
-            <div>
-              <p className="text-sm font-semibold text-gray-900">
+            <div className="text-center sm:text-left">
+              <p className="text-base font-bold text-gray-900">
                 {[personalInfo.firstName, personalInfo.lastName].filter(Boolean).join(' ') || 'Your Name'}
               </p>
               <p className="text-xs text-gray-400 mt-0.5">{personalInfo.email || 'your@email.com'}</p>
-              <button
-                onClick={() => document.getElementById('avatar-upload')?.click()}
-                className="mt-2 text-xs font-medium text-gray-500 hover:text-gray-900 underline underline-offset-2 transition-colors"
-              >
-                {avatarPreview ? 'Change photo' : 'Upload photo'}
-              </button>
-              {avatarFile && (
+              <div className="flex items-center justify-center sm:justify-start gap-3 mt-2.5">
                 <button
-                  onClick={() => { setAvatarPreview(null); setAvatarFile(null); }}
-                  className="ml-3 mt-2 text-xs font-medium text-red-400 hover:text-red-600 transition-colors"
+                  onClick={() => document.getElementById('avatar-upload')?.click()}
+                  className="text-xs font-semibold text-gray-900 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  Remove
+                  {avatarPreview ? 'Change photo' : 'Upload photo'}
                 </button>
-              )}
+                {avatarFile && (
+                  <button
+                    onClick={() => { setAvatarPreview(null); setAvatarFile(null); }}
+                    className="text-xs font-medium text-red-500 hover:text-red-700 transition-colors"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            {[
-              { label: 'First Name', name: 'firstName' },
-              { label: 'Last Name',  name: 'lastName'  },
-              { label: 'Email',      name: 'email'     },
-            ].map(f => (
-              <div key={f.name}>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">{f.label}</label>
-                <input
-                  name={f.name}
-                  value={(personalInfo as any)[f.name]}
-                  onChange={handlePersonalInfoChange}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-gray-400 transition-colors"
-                />
-              </div>
-            ))}
-
-            {/* Department — read-only for non-admins */}
+          {/* Name row — 2 cols even on mobile */}
+          <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Department</label>
-              {!canEdit ? (
-                <div className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-gray-50 flex items-center justify-between">
-                  <span className="text-gray-500">{personalInfo.department || '—'}</span>
-                  <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                    <FiShield size={12} />
-                    Managed by admin
-                  </div>
-                </div>
-              ) : (
-                <input
-                  name="department"
-                  value={personalInfo.department}
-                  onChange={handlePersonalInfoChange}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-gray-400 transition-colors"
-                />
-              )}
+              <label className={labelCls}>First Name</label>
+              <input name="firstName" value={personalInfo.firstName} onChange={handlePersonalInfoChange} className={inputCls} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Role</label>
-              <div className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-gray-50 flex items-center justify-between">
-                <span className="text-gray-600 font-medium">{personalInfo.role || '—'}</span>
-                <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                  <FiShield size={12} />
-                  Managed from backend
+              <label className={labelCls}>Last Name</label>
+              <input name="lastName" value={personalInfo.lastName} onChange={handlePersonalInfoChange} className={inputCls} />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <label className={labelCls}>Email</label>
+              <input name="email" value={personalInfo.email} onChange={handlePersonalInfoChange} className={inputCls} />
+            </div>
+
+            <div>
+              <label className={labelCls}>Department</label>
+              {!canEdit ? (
+                <div className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-50 flex items-center justify-between">
+                  <span className="text-gray-500">{personalInfo.department || '—'}</span>
+                  <span className="flex items-center gap-1 text-[11px] text-gray-400"><FiShield size={11} /> Admin only</span>
                 </div>
+              ) : (
+                <input name="department" value={personalInfo.department} onChange={handlePersonalInfoChange} className={inputCls} />
+              )}
+            </div>
+
+            <div>
+              <label className={labelCls}>Role</label>
+              <div className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-50 flex items-center justify-between">
+                <span className="font-semibold text-gray-700">{personalInfo.role || '—'}</span>
+                <span className="flex items-center gap-1 text-[11px] text-gray-400"><FiShield size={11} /> System managed</span>
               </div>
             </div>
           </div>
 
           {personalInfoError && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm mb-4">
-              <FiAlertCircle size={14} className="shrink-0" />
-              {personalInfoError}
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs mt-4">
+              <FiAlertCircle size={13} className="shrink-0" />{personalInfoError}
             </div>
           )}
         </div>
       </div>
 
       {/* Change Password */}
-      <div className="bg-white rounded-xl border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3 rounded-t-xl">
-          <div className="w-7 h-7 rounded-lg bg-gray-100 grid place-items-center">
-            <FiLock size={14} className="text-gray-500" />
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-gray-900 grid place-items-center shrink-0">
+            <FiLock size={14} className="text-white" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-gray-900">Change Password</h2>
-            <p className="text-xs text-gray-400">Leave blank if you don't want to change it</p>
+            <h2 className="text-sm font-bold text-gray-900">Change Password</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Leave blank to keep current password</p>
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-5 space-y-3">
           {passwordError && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm mb-4">
-              <FiAlertCircle size={14} className="shrink-0" />
-              {passwordError}
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs">
+              <FiAlertCircle size={13} className="shrink-0" />{passwordError}
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              { label: 'Current Password',  name: 'oldPassword'     },
-              { label: 'New Password',       name: 'newPassword'     },
-              { label: 'Confirm Password',   name: 'confirmPassword' },
-            ].map(f => (
-              <div key={f.name}>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">{f.label}</label>
-                <input
-                  type="password"
-                  name={f.name}
-                  value={(password as any)[f.name]}
-                  onChange={handlePasswordChange}
-                  disabled={isChangingPassword}
-                  placeholder="••••••••"
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-gray-400 transition-colors disabled:opacity-50"
-                />
-              </div>
-            ))}
-          </div>
+          {[
+            { label: 'Current Password',  name: 'oldPassword'     },
+            { label: 'New Password',       name: 'newPassword'     },
+            { label: 'Confirm Password',   name: 'confirmPassword' },
+          ].map(f => (
+            <div key={f.name}>
+              <label className={labelCls}>{f.label}</label>
+              <input
+                type="password"
+                name={f.name}
+                value={(password as any)[f.name]}
+                onChange={handlePasswordChange}
+                disabled={isChangingPassword}
+                placeholder="••••••••"
+                className={inputCls + " disabled:opacity-50"}
+              />
+            </div>
+          ))}
         </div>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-end gap-3 pt-1">
+      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
         <button
           onClick={handleCancel}
-          className="px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors"
+          className="w-full sm:w-auto px-6 py-3 text-sm font-semibold text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
         >
           Cancel
         </button>
         <button
           onClick={handleSave}
           disabled={isChangingPassword || isSaving}
-          className="px-5 py-2.5 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full sm:w-auto px-6 py-3 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-black transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {isChangingPassword || isSaving ? 'Saving…' : 'Save Changes'}
         </button>
@@ -451,51 +431,65 @@ export const CompanyDetailsPage = () => {
     industry: 'Construction',
     website: '',
     size: '1-10',
-    country: 'Select Country',
-    city: 'Select City',
+    country: '',
+    state: '',
+    city: '',
     description: '',
     logo: null as File | null
   });
 
   const [countries, setCountries] = useState<Country[]>([]);
+  const [states, setStates] = useState<State[]>([]);
   const [cities, setCities] = useState<City[]>([]);
   const [loadingCountries, setLoadingCountries] = useState(false);
+  const [loadingStates, setLoadingStates] = useState(false);
   const [loadingCities, setLoadingCities] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  // Load company details from Supabase so all users see the same data
+  // Load company details from Supabase (shared row — all users read the same record)
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await companySettingsService.get();
+        const { data: { user } } = await supabase.auth.getUser();
+        setUserId(user?.id ?? null);
+
+        const { data, error } = await supabase
+          .from('company_settings')
+          .select('*')
+          .eq('id', COMPANY_SETTINGS_ID)
+          .maybeSingle();
+
+        if (error) throw error;
+
         if (data) {
           setCompanyDetails(prev => ({
             ...prev,
-            name: data.name || '',
-            industry: data.industry || 'Construction',
-            website: data.website || '',
-            size: data.size || '1-10',
-            country: data.country || 'Select Country',
-            city: data.city || 'Select City',
-            description: data.description || '',
+            name:        data.company_name    || '',
+            industry:    data.industry        || 'Construction',
+            website:     data.company_website || '',
+            size:        data.company_size    || '1-10',
+            country:     data.country         || '',
+            state:       data.state           || '',
+            city:        data.city            || '',
+            description: data.description     || '',
             logo: null,
           }));
           if (data.logo_url) setLogoPreview(data.logo_url);
         }
       } catch (err) {
         console.error('Failed to load company details:', err);
-        // fallback to localStorage if Supabase unavailable
         try {
           const saved = localStorage.getItem('companyDetails');
           if (saved) {
             const parsed = JSON.parse(saved);
             setCompanyDetails(prev => ({ ...prev, ...parsed, logo: null }));
+            if (parsed.logo_url) setLogoPreview(parsed.logo_url);
           }
         } catch {}
       }
     };
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Load countries on mount
@@ -517,43 +511,61 @@ export const CompanyDetailsPage = () => {
   }, []);
 
   // When country changes, fetch cities
+  // When country changes → fetch states, clear state + city
   useEffect(() => {
     let mounted = true;
-    const countryName = companyDetails.country;
-    if (!countryName || countryName === 'Select Country') {
-      setCities([]);
-      return;
-    }
+    setStates([]);
+    setCities([]);
 
-    const loadCities = async () => {
+    const countryName = companyDetails.country;
+    if (!countryName) return;
+
+    const load = async () => {
+      setLoadingStates(true);
+      try {
+        const list = await fetchStates(countryName);
+        if (mounted) setStates(list);
+      } catch (err) {
+        console.error('Failed to load states for', countryName, err);
+      } finally {
+        if (mounted) setLoadingStates(false);
+      }
+    };
+    load();
+    return () => { mounted = false; };
+  }, [companyDetails.country]);
+
+  // When state changes → fetch cities for that state, clear city
+  useEffect(() => {
+    let mounted = true;
+    setCities([]);
+
+    const countryName = companyDetails.country;
+    const stateName = companyDetails.state;
+    if (!countryName || !stateName) return;
+
+    const load = async () => {
       setLoadingCities(true);
       try {
-        const list = await fetchCities(countryName);
+        const list = await fetchCitiesByState(countryName, stateName);
         if (mounted) setCities(list);
       } catch (err) {
-        console.error('Failed to load cities for', countryName, err);
-        if (mounted) setCities([]);
+        console.error('Failed to load cities for', stateName, err);
       } finally {
         if (mounted) setLoadingCities(false);
       }
     };
-
-    loadCities();
+    load();
     return () => { mounted = false; };
-  }, [companyDetails.country]);
+  }, [companyDetails.state]);
 
-  // Create a preview URL for uploaded logo
+  // Create a local preview URL only when a new file is selected.
+  // Don't clear logoPreview when logo is null — the saved DB URL should persist.
   useEffect(() => {
-    let url: string | null = null;
-    if (companyDetails.logo) {
-      url = URL.createObjectURL(companyDetails.logo);
-      setLogoPreview(url);
-    } else {
-      setLogoPreview(null);
-    }
-    return () => {
-      if (url) URL.revokeObjectURL(url);
-    };
+    if (!companyDetails.logo) return;
+    const url = URL.createObjectURL(companyDetails.logo);
+    setLogoPreview(url);
+    return () => URL.revokeObjectURL(url);
   }, [companyDetails.logo]);
 
   const [isDragOver, setIsDragOver] = useState(false);
@@ -590,264 +602,408 @@ export const CompanyDetailsPage = () => {
       if (file.type === 'image/png' || file.type === 'image/jpeg') {
         setCompanyDetails({ ...companyDetails, logo: file });
       } else {
-        alert('Please upload a PNG or JPG file.');
+        toast('Please upload a PNG or JPG file.', 'warning');
       }
     }
   };
 
   const handleSave = async () => {
+    if (!companyDetails.name.trim()) {
+      setSaveError('Company name is required');
+      return;
+    }
+
+    if (!userId) {
+      setSaveError('You must be signed in to save.');
+      return;
+    }
+
     setIsSaving(true);
     setSaveError(null);
 
-    try {
-      // Validate required fields
-      if (!companyDetails.name.trim()) {
-        throw new Error('Company name is required');
+    // If a new file was selected, convert it to a base64 data URL so it can
+    // be stored directly in Supabase without needing a storage bucket.
+    let finalLogoUrl: string | null = logoPreview ?? null;
+    if (companyDetails.logo) {
+      try {
+        finalLogoUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(companyDetails.logo!);
+        });
+        setLogoPreview(finalLogoUrl); // update preview to the persisted data URL
+      } catch {
+        setSaveError('Failed to process logo image.');
+        setIsSaving(false);
+        return;
       }
+    }
 
-      // Save to Supabase so all users see the updated values
-      await companySettingsService.upsert({
-        name: companyDetails.name,
-        industry: companyDetails.industry,
-        website: companyDetails.website,
-        size: companyDetails.size,
-        country: companyDetails.country,
-        city: companyDetails.city,
-        description: companyDetails.description,
-        logo_url: logoPreview && !companyDetails.logo ? logoPreview : null,
-      });
+    const { error } = await supabase
+      .from('company_settings')
+      .upsert({
+        id:               COMPANY_SETTINGS_ID,
+        company_name:     companyDetails.name,
+        company_website:  companyDetails.website,
+        industry:         companyDetails.industry,
+        company_size:     companyDetails.size,
+        country:          companyDetails.country,
+        state:            companyDetails.state,
+        city:             companyDetails.city,
+        description:      companyDetails.description,
+        logo_url:         finalLogoUrl,
+      }, { onConflict: 'id' });
 
-      alert('Company details saved successfully!');
-    } catch (error) {
-      console.error('Error saving company details:', error);
-      setSaveError(error instanceof Error ? error.message : 'Failed to save company details. Please try again.');
-    } finally {
-      setIsSaving(false);
+    setIsSaving(false);
+
+    if (error) {
+      setSaveError(error.message);
+    } else {
+      localStorage.setItem('companyDetails', JSON.stringify({
+        company_name: companyDetails.name, company_website: companyDetails.website,
+        industry: companyDetails.industry, company_size: companyDetails.size,
+        country: companyDetails.country, state: companyDetails.state,
+        city: companyDetails.city, description: companyDetails.description,
+        logo_url: finalLogoUrl,
+      }));
+      toast('Company details saved successfully!');
     }
   };
 
   const handleCancel = async () => {
     try {
-      const data = await companySettingsService.get();
+      const { data } = await supabase
+        .from('company_settings')
+        .select('*')
+        .eq('id', COMPANY_SETTINGS_ID)
+        .maybeSingle();
+
       if (data) {
         setCompanyDetails(prev => ({
           ...prev,
-          name: data.name || '',
-          industry: data.industry || 'Construction',
-          website: data.website || '',
-          size: data.size || '1-10',
-          country: data.country || 'Select Country',
-          city: data.city || 'Select City',
-          description: data.description || '',
+          name:        data.company_name    || '',
+          industry:    data.industry        || 'Construction',
+          website:     data.company_website || '',
+          size:        data.company_size    || '1-10',
+          country:     data.country         || '',
+          state:       data.state           || '',
+          city:        data.city            || '',
+          description: data.description     || '',
           logo: null,
         }));
         setLogoPreview(data.logo_url || null);
       }
     } catch {
-      // ignore
+      try {
+        const saved = localStorage.getItem('companyDetails');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setCompanyDetails(prev => ({ ...prev, ...parsed, logo: null }));
+          setLogoPreview(parsed.logo_url || null);
+        }
+      } catch {}
     }
   };
 
   const { canEdit } = useUserRole();
 
-  const readonlyField = (label: string, value: string) => (
-    <div key={label}>
-      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">{label}</label>
-      <div className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-600">
-        {value || <span className="text-gray-400">—</span>}
+  const sizeLabelMap: Record<string, string> = {
+    '1-10': '1 – 10 employees', '11-50': '11 – 50 employees',
+    '51-200': '51 – 200 employees', '201-500': '201 – 500 employees', '500+': '500+ employees',
+  };
+
+  // ── View-only profile card (Viewer / Employee) ──────────────────────────────
+  if (!canEdit) {
+    const locationParts = [companyDetails.city, companyDetails.state].filter(Boolean);
+    return (
+      <div className="space-y-3">
+
+        {/* Hero header */}
+        <div className="bg-gray-900 rounded-2xl px-6 py-5 flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center shrink-0 overflow-hidden">
+            {logoPreview
+              ? <img src={logoPreview} alt="Logo" className="w-full h-full object-contain" />
+              : <FiBriefcase size={22} className="text-white/60" />
+            }
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-base font-bold text-white leading-tight truncate">
+              {companyDetails.name || <span className="text-white/40">No company name</span>}
+            </h2>
+            <p className="text-sm text-gray-400 mt-0.5">
+              {[companyDetails.industry, sizeLabelMap[companyDetails.size] ?? companyDetails.size].filter(Boolean).join(' · ')}
+            </p>
+          </div>
+          <span className="text-xs font-semibold text-white/50 bg-white/10 px-3 py-1.5 rounded-full shrink-0">
+            View Only
+          </span>
+        </div>
+
+        {/* Info rows */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50 overflow-hidden">
+          {companyDetails.website && (
+            <div className="flex items-center gap-4 px-5 py-4">
+              <div className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
+                <FiGlobe size={14} className="text-gray-400" />
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-0.5">Website</p>
+                <a href={companyDetails.website} target="_blank" rel="noopener noreferrer"
+                  className="text-sm font-medium text-blue-600 hover:underline underline-offset-2">
+                  {companyDetails.website}
+                </a>
+              </div>
+            </div>
+          )}
+          {companyDetails.industry && (
+            <div className="flex items-center gap-4 px-5 py-4">
+              <div className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
+                <FiBarChart2 size={14} className="text-gray-400" />
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-0.5">Industry</p>
+                <p className="text-sm font-medium text-gray-800">{companyDetails.industry}</p>
+              </div>
+            </div>
+          )}
+          {companyDetails.size && (
+            <div className="flex items-center gap-4 px-5 py-4">
+              <div className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
+                <FiUsers size={14} className="text-gray-400" />
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-0.5">Company Size</p>
+                <p className="text-sm font-medium text-gray-800">{sizeLabelMap[companyDetails.size] ?? companyDetails.size}</p>
+              </div>
+            </div>
+          )}
+          <div className="flex items-center gap-4 px-5 py-4">
+            <div className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
+              <FiMapPin size={14} className="text-gray-400" />
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-0.5">Location</p>
+              {(companyDetails.city || companyDetails.state || companyDetails.country) ? (
+                <p className="text-sm font-medium text-gray-800">
+                  {locationParts.length > 0 && <span>{locationParts.join(', ')}</span>}
+                  {companyDetails.country && (
+                    <span className="text-blue-600 font-semibold">
+                      {locationParts.length > 0 ? ', ' : ''}{companyDetails.country}
+                    </span>
+                  )}
+                </p>
+              ) : (
+                <p className="text-sm text-gray-400">—</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* About */}
+        <div className="bg-blue-50/70 rounded-2xl border border-blue-100 px-5 py-4">
+          <p className="text-[10px] font-semibold text-blue-400 uppercase tracking-widest mb-2">About</p>
+          {companyDetails.description
+            ? <p className="text-sm text-blue-700 leading-relaxed">{companyDetails.description}</p>
+            : <p className="text-sm text-blue-300">No description provided</p>
+          }
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  const inputCls = "w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-gray-900 focus:ring-2 focus:ring-gray-900/8 transition-all placeholder-gray-300";
 
   return (
     <div className="space-y-4">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
 
-      {/* Logo + Company fields */}
-      <div className="bg-white rounded-xl border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg bg-gray-100 grid place-items-center">
-              <FiBriefcase size={14} className="text-gray-500" />
-            </div>
-            <div>
-              <h2 className="text-sm font-semibold text-gray-900">Company Details</h2>
-              <p className="text-xs text-gray-400">
-                {canEdit ? 'Manage your organisation profile' : 'View-only — contact an admin to make changes'}
-              </p>
-            </div>
+        {/* ── Card header ── */}
+        <div className="px-6 py-5 border-b border-gray-100 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gray-900 grid place-items-center shrink-0">
+            <FiBriefcase size={15} className="text-white" />
           </div>
-          {!canEdit && (
-            <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-gray-50 border border-gray-200 px-2.5 py-1.5 rounded-lg">
-              <FiShield size={11} />
-              View only
-            </div>
-          )}
+          <div>
+            <h2 className="text-sm font-bold text-gray-900">Company Details</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Manage your organisation profile</p>
+          </div>
         </div>
 
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="p-6 space-y-7">
 
-            {/* Logo */}
-            <div className="flex flex-col items-center gap-3">
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide self-start">Company Logo</label>
-              {canEdit ? (
-                <>
-                  <div
-                    className={`w-full h-36 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors ${
-                      isDragOver ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                    onClick={() => { if (!logoPreview) document.getElementById('logo-upload')?.click(); }}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                  >
-                    <input id="logo-upload" type="file" accept="image/png,image/jpeg" onChange={handleFileChange} className="hidden" />
-                    {logoPreview ? (
-                      <img src={logoPreview} alt="Logo" className="w-20 h-20 object-contain" onClick={() => document.getElementById('logo-upload')?.click()} />
-                    ) : (
-                      <>
-                        <FiUpload size={20} className="text-gray-300 mb-2" />
-                        <p className="text-xs text-gray-400">Drag & drop or click</p>
-                        <p className="text-[11px] text-gray-300 mt-0.5">PNG or JPG</p>
-                      </>
-                    )}
-                  </div>
-                  {logoPreview && (
-                    <button type="button" onClick={() => document.getElementById('logo-upload')?.click()} className="text-xs text-gray-400 hover:text-gray-700 underline underline-offset-2 transition-colors">
-                      Change logo
-                    </button>
-                  )}
-                </>
-              ) : (
-                <div className="w-full h-36 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center">
-                  {logoPreview
-                    ? <img src={logoPreview} alt="Logo" className="w-20 h-20 object-contain" />
-                    : <p className="text-xs text-gray-400">No logo uploaded</p>
-                  }
-                </div>
-              )}
-            </div>
+          {/* ── Identity: logo + name + website ── */}
+          <div>
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-4">Identity</p>
+            <div className="flex items-start gap-5">
 
-            {/* Fields */}
-            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {canEdit ? (
-                <>
-                  {[
-                    { label: 'Company Name',    name: 'name',    placeholder: 'Acme Inc.' },
-                    { label: 'Company Website', name: 'website', placeholder: 'https://acme.com' },
-                  ].map(f => (
-                    <div key={f.name}>
-                      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">{f.label}</label>
-                      <input name={f.name} value={(companyDetails as any)[f.name]} onChange={handleChange} placeholder={f.placeholder}
-                        className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-gray-400 transition-colors" />
+              {/* Logo avatar */}
+              <div className="shrink-0 flex flex-col items-center gap-2">
+                <div
+                  className={`w-20 h-20 rounded-2xl border-2 border-dashed flex items-center justify-center cursor-pointer transition-colors relative group ${
+                    isDragOver ? 'border-gray-500 bg-gray-50' : 'border-gray-200 hover:border-gray-400 hover:bg-gray-50'
+                  }`}
+                  onClick={() => document.getElementById('logo-upload')?.click()}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
+                  <input id="logo-upload" type="file" accept="image/png,image/jpeg" onChange={handleFileChange} className="hidden" />
+                  {logoPreview ? (
+                    <>
+                      <img src={logoPreview} alt="Logo" className="w-full h-full object-contain rounded-2xl" />
+                      <div className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <FiCamera size={16} className="text-white" />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1.5">
+                      <FiUpload size={18} className="text-gray-300" />
+                      <span className="text-[10px] text-gray-400 font-medium">Logo</span>
                     </div>
-                  ))}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Industry</label>
-                    <Select
-                      value={companyDetails.industry}
-                      onChange={val => setCompanyDetails(prev => ({ ...prev, industry: val }))}
-                      options={[
-                        { value: 'Construction', label: 'Construction' },
-                        { value: 'Technology',   label: 'Technology'   },
-                        { value: 'Healthcare',   label: 'Healthcare'   },
-                        { value: 'Education',    label: 'Education'    },
-                        { value: 'Finance',      label: 'Finance'      },
-                        { value: 'Other',        label: 'Other'        },
-                      ]}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Company Size</label>
-                    <Select
-                      value={companyDetails.size}
-                      onChange={val => setCompanyDetails(prev => ({ ...prev, size: val }))}
-                      options={[
-                        { value: '1-10',     label: '1 – 10'      },
-                        { value: '11-50',    label: '11 – 50'     },
-                        { value: '51-200',   label: '51 – 200'    },
-                        { value: '201-500',  label: '201 – 500'   },
-                        { value: '500+',     label: '500+'        },
-                      ]}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Country</label>
-                    <Select
-                      value={companyDetails.country === 'Select Country' ? '' : companyDetails.country}
-                      onChange={val => setCompanyDetails(prev => ({ ...prev, country: val, city: '' }))}
-                      options={countries.map(c => ({ value: c.name, label: c.name }))}
-                      placeholder="Select Country"
-                      loading={loadingCountries}
-                      searchable
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">City</label>
-                    <Select
-                      value={(companyDetails as any).city === 'Select City' ? '' : ((companyDetails as any).city || '')}
-                      onChange={val => setCompanyDetails(prev => ({ ...prev, city: val }))}
-                      options={cities.map(ct => ({ value: ct.name, label: ct.name }))}
-                      placeholder="Select City"
-                      loading={loadingCities}
-                      disabled={!companyDetails.country || companyDetails.country === 'Select Country'}
-                      searchable
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  {readonlyField('Company Name', companyDetails.name)}
-                  {readonlyField('Company Website', companyDetails.website)}
-                  {readonlyField('Industry', companyDetails.industry)}
-                  {readonlyField('Company Size', companyDetails.size)}
-                  {readonlyField('Country', companyDetails.country !== 'Select Country' ? companyDetails.country : '')}
-                  {readonlyField('City', (companyDetails as any).city !== 'Select City' ? (companyDetails as any).city : '')}
-                </>
-              )}
+                  )}
+                </div>
+                <span className="text-[10px] text-gray-400">PNG / JPG</span>
+              </div>
+
+              {/* Name + website */}
+              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">Company Name</label>
+                  <input name="name" value={companyDetails.name} onChange={handleChange} placeholder="Acme Inc." className={inputCls} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">Website</label>
+                  <input name="website" value={companyDetails.website} onChange={handleChange} placeholder="https://acme.com" className={inputCls} />
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Description */}
-          <div className="mb-4">
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Company Description</label>
-            {canEdit ? (
-              <textarea name="description" value={companyDetails.description} onChange={handleChange} rows={4}
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-gray-400 transition-colors resize-none" />
-            ) : (
-              <div className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-600 min-h-[96px]">
-                {companyDetails.description || <span className="text-gray-400">No description provided</span>}
+          {/* ── Organisation ── */}
+          <div>
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-4">Organisation</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Industry</label>
+                <Select
+                  value={companyDetails.industry}
+                  onChange={val => setCompanyDetails(prev => ({ ...prev, industry: val }))}
+                  options={[
+                    { value: 'Construction', label: 'Construction' },
+                    { value: 'Technology',   label: 'Technology'   },
+                    { value: 'Healthcare',   label: 'Healthcare'   },
+                    { value: 'Education',    label: 'Education'    },
+                    { value: 'Finance',      label: 'Finance'      },
+                    { value: 'Other',        label: 'Other'        },
+                  ]}
+                />
               </div>
-            )}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Company Size</label>
+                <Select
+                  value={companyDetails.size}
+                  onChange={val => setCompanyDetails(prev => ({ ...prev, size: val }))}
+                  options={[
+                    { value: '1-10',    label: '1 – 10'    },
+                    { value: '11-50',   label: '11 – 50'   },
+                    { value: '51-200',  label: '51 – 200'  },
+                    { value: '201-500', label: '201 – 500' },
+                    { value: '500+',    label: '500+'      },
+                  ]}
+                />
+              </div>
+            </div>
           </div>
 
+          {/* ── Location ── */}
+          <div>
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-4">Location</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Country</label>
+                <Select
+                  value={companyDetails.country}
+                  onChange={val => setCompanyDetails(prev => ({ ...prev, country: val, state: '', city: '' }))}
+                  options={countries.map(c => ({ value: c.name, label: c.name }))}
+                  placeholder="Select country"
+                  loading={loadingCountries}
+                  searchable
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">State / Province</label>
+                <Select
+                  value={companyDetails.state}
+                  onChange={val => setCompanyDetails(prev => ({ ...prev, state: val, city: '' }))}
+                  options={states.map(s => ({ value: s.name, label: s.name }))}
+                  placeholder={companyDetails.country ? 'Select state' : 'Pick country first'}
+                  loading={loadingStates}
+                  disabled={!companyDetails.country}
+                  searchable
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">City</label>
+                <Select
+                  value={companyDetails.city}
+                  onChange={val => setCompanyDetails(prev => ({ ...prev, city: val }))}
+                  options={cities.map(ct => ({ value: ct.name, label: ct.name }))}
+                  placeholder={companyDetails.state ? 'Select city' : 'Pick state first'}
+                  loading={loadingCities}
+                  disabled={!companyDetails.state}
+                  searchable
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ── About ── */}
+          <div>
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-4">About</p>
+            <textarea
+              name="description"
+              value={companyDetails.description}
+              onChange={handleChange}
+              rows={4}
+              placeholder="Briefly describe what your company does…"
+              className={`${inputCls} resize-none`}
+            />
+          </div>
+
+          {/* Error */}
           {saveError && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm">
               <FiAlertCircle size={14} className="shrink-0" />{saveError}
             </div>
           )}
         </div>
-      </div>
 
-      {/* Actions — only visible to admin */}
-      {canEdit && (
-        <div className="flex items-center justify-end gap-3 pt-1">
-          <button onClick={handleCancel} className="px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors">
+        {/* ── Actions ── */}
+        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/60 flex justify-end gap-2">
+          <button
+            onClick={handleCancel}
+            className="px-5 py-2.5 text-sm font-semibold text-gray-500 border border-gray-200 rounded-xl hover:bg-white transition-colors"
+          >
             Cancel
           </button>
-          <button onClick={handleSave} disabled={isSaving}
-            className="px-5 py-2.5 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="px-5 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-black transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
             {isSaving ? 'Saving…' : 'Save Changes'}
           </button>
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
 // ===================== NOTIFICATION PREFERENCE PAGE =====================
 export const NotificationPreferencePage = () => {
-  const [frequency, setFrequency] = useState('7 days before');
+  const { isAdmin, role } = useUserRole();
+  const [frequency, setFrequency] = useState('30 days before');
+  const [enforceForAll, setEnforceForAll] = useState(false);
   const [toggles, setToggles] = useState({
     emailNotifications: false,
     employeeUpdates: false,
@@ -873,7 +1029,8 @@ export const NotificationPreferencePage = () => {
               const body = await res.json();
               if (body && body.success && body.data && mounted) {
                 const d = body.data;
-                setFrequency(d.frequency || '7 days before');
+                setFrequency(d.frequency || '30 days before');
+                setEnforceForAll(!!d.enforceForAll);
                 setToggles({
                   emailNotifications: !!d.emailNotifications,
                   employeeUpdates: !!d.employeeUpdates,
@@ -896,7 +1053,8 @@ export const NotificationPreferencePage = () => {
           const saved = localStorage.getItem('notificationPreferences');
           if (saved && mounted) {
             const parsed = JSON.parse(saved);
-            setFrequency(parsed.frequency || '7 days before');
+            setFrequency(parsed.frequency || '30 days before');
+            setEnforceForAll(!!parsed.enforceForAll);
             setToggles({
               emailNotifications: !!parsed.emailNotifications,
               employeeUpdates: !!parsed.employeeUpdates,
@@ -994,14 +1152,15 @@ export const NotificationPreferencePage = () => {
       // Get current user
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user?.id) {
-        alert('Please log in to save preferences');
+        toast('Please log in to save preferences.', 'warning');
         setIsSaving(false);
         return;
       }
 
       const preferencesData = {
         frequency,
-        ...toggles
+        enforceForAll,
+        ...toggles,
       };
 
       // Save to backend
@@ -1054,91 +1213,205 @@ export const NotificationPreferencePage = () => {
       // Also persist preferences locally so they are immediately visible when navigating
       localStorage.setItem('notificationPreferences', JSON.stringify(preferencesData));
       
-      alert('Notification preferences saved successfully! Confirmation email sent.');
+      toast('Notification preferences saved successfully!');
     } catch (error) {
       console.error('Error saving preferences:', error);
-      alert('Failed to save notification preferences. Please try again.');
+      toast('Failed to save notification preferences. Please try again.', 'error');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const notifItems = [
-    { key: 'emailNotifications' as keyof typeof toggles, icon: FiMail,        title: 'Email Notifications',       desc: 'Alerts about credential updates, expiries, and system events.' },
-    { key: 'employeeUpdates'    as keyof typeof toggles, icon: FiUsers,        title: 'Employee Updates',          desc: 'Changes to employee accounts, roles, or activities.' },
-    { key: 'expirySummary'      as keyof typeof toggles, icon: FiBell,         title: 'Expiry Summary Emails',     desc: 'Weekly digest of credentials expiring soon.' },
-    { key: 'criticalAlerts'     as keyof typeof toggles, icon: FiAlertCircle,  title: 'Critical Alerts Only',      desc: 'Only urgent events — expired credentials or failed uploads.' },
+  // Reusable toggle switch
+  const Toggle = ({ active, onToggle, disabled = false }: { active: boolean; onToggle: () => void; disabled?: boolean }) => (
+    <button
+      role="switch"
+      aria-checked={active}
+      onClick={onToggle}
+      disabled={disabled}
+      className={`relative w-11 h-6 rounded-full transition-colors shrink-0 focus:outline-none
+        ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+        ${active ? 'bg-blue-500' : 'bg-gray-200'}`}
+    >
+      <span className={`block w-4.5 h-4.5 bg-white rounded-full absolute top-[3px] transition-transform shadow-sm ${active ? 'translate-x-[22px]' : 'translate-x-[3px]'}`} />
+    </button>
+  );
+
+  // Card header shared by both views
+  const roleLabel   = isAdmin ? 'Admin'    : (role ?? 'Employee');
+  const roleBadgeCls = isAdmin
+    ? 'bg-green-100 text-green-700 border border-green-200'
+    : 'bg-gray-100 text-gray-500 border border-gray-200';
+
+  const CardHeader = () => (
+    <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-gray-900 grid place-items-center shrink-0">
+          <FiBell size={15} className="text-white" />
+        </div>
+        <div>
+          <h2 className="text-sm font-bold text-gray-900">Notification Preferences</h2>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {isAdmin ? 'Control when and how your team is notified' : 'Control how you receive notifications'}
+          </p>
+        </div>
+      </div>
+      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${roleBadgeCls}`}>
+        {roleLabel}
+      </span>
+    </div>
+  );
+
+  // ── ADMIN VIEW ────────────────────────────────────────────────────────────────
+  if (isAdmin) {
+    const adminItems = [
+      { key: 'emailNotifications' as keyof typeof toggles, icon: FiMail,       title: 'Email Notifications',   desc: 'Alerts about credential updates, expiries, and system events.' },
+      { key: 'employeeUpdates'    as keyof typeof toggles, icon: FiUsers,       title: 'Employee Updates',      desc: 'Changes to employee accounts, roles, or activities.' },
+      { key: 'expirySummary'      as keyof typeof toggles, icon: FiBell,        title: 'Expiry Summary Emails', desc: 'Weekly digest of credentials expiring soon.' },
+      { key: 'criticalAlerts'     as keyof typeof toggles, icon: FiAlertCircle, title: 'Critical Alerts Only',  desc: 'Only urgent events — expired credentials or failed uploads.' },
+    ];
+
+    return (
+      <div className="space-y-3">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <CardHeader />
+
+          {/* Alert timing */}
+          <div className="px-6 py-5 border-b border-gray-100">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="h-px flex-1 bg-gray-100" />
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest shrink-0">Alert Timing</p>
+              <span className="h-px flex-1 bg-gray-100" />
+            </div>
+            <label className="block text-xs font-semibold text-gray-700 mb-2">Alert me before expiry</label>
+            <Select
+              value={frequency}
+              onChange={val => setFrequency(val)}
+              options={[
+                { value: '7 days before',  label: '7 days before'  },
+                { value: '15 days before', label: '15 days before' },
+                { value: '30 days before', label: '30 days before' },
+              ]}
+            />
+            <p className="text-xs text-gray-400 mt-2">This applies to all users in your organisation.</p>
+          </div>
+
+          {/* Notification channels */}
+          <div className="px-6 pt-5 pb-3">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="h-px flex-1 bg-gray-100" />
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest shrink-0">Notification Channels</p>
+              <span className="h-px flex-1 bg-gray-100" />
+            </div>
+          </div>
+          <div className="divide-y divide-gray-50 px-2 pb-2">
+            {adminItems.map(item => {
+              const Icon = item.icon;
+              const active = toggles[item.key];
+              return (
+                <div key={item.key} className="flex items-center gap-4 px-4 py-3.5">
+                  <div className={`w-9 h-9 rounded-xl grid place-items-center shrink-0 transition-colors ${active ? 'bg-blue-50' : 'bg-gray-100'}`}>
+                    <Icon size={15} className={active ? 'text-blue-500' : 'text-gray-400'} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-800">{item.title}</p>
+                    <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{item.desc}</p>
+                  </div>
+                  <Toggle active={active} onToggle={() => handleToggle(item.key)} />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Enforce for all */}
+          <div className="px-4 pb-4">
+            <div className={`flex items-center gap-4 px-4 py-4 rounded-xl border transition-colors ${enforceForAll ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200'}`}>
+              <Toggle active={enforceForAll} onToggle={() => setEnforceForAll(p => !p)} />
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-semibold ${enforceForAll ? 'text-amber-800' : 'text-gray-700'}`}>Enforce for all employees</p>
+                <p className={`text-xs mt-0.5 leading-relaxed ${enforceForAll ? 'text-amber-600' : 'text-gray-400'}`}>
+                  Employees won't be able to change these notification settings.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button onClick={handleSave} disabled={isSaving}
+          className="w-full py-3.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-black transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+          {isSaving ? 'Saving…' : 'Save Preferences'}
+        </button>
+      </div>
+    );
+  }
+
+  // ── EMPLOYEE / VIEWER VIEW ────────────────────────────────────────────────────
+  const userItems = [
+    { key: 'emailNotifications' as keyof typeof toggles, icon: FiMail,       title: 'Email Notifications',   desc: 'Receive alerts about your credential updates and expiries.', adminLocked: false },
+    { key: 'employeeUpdates'    as keyof typeof toggles, icon: FiUsers,       title: 'Employee Updates',      desc: 'Changes to your account, role, or activity.',               adminLocked: enforceForAll },
+    { key: 'expirySummary'      as keyof typeof toggles, icon: FiBell,        title: 'Expiry Summary Emails', desc: 'Weekly digest of your credentials expiring soon.',           adminLocked: false },
+    { key: 'criticalAlerts'     as keyof typeof toggles, icon: FiAlertCircle, title: 'Critical Alerts Only',  desc: 'Only urgent events — expired credentials or failed uploads.', adminLocked: false },
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <CardHeader />
 
-      {/* Frequency */}
-      <div className="bg-white rounded-xl border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3 rounded-t-xl rounded-t-xl">
-          <div className="w-7 h-7 rounded-lg bg-gray-100 grid place-items-center">
-            <FiBell size={14} className="text-gray-500" />
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold text-gray-900">Notification Preferences</h2>
-            <p className="text-xs text-gray-400">Control when and how you are notified</p>
-          </div>
-        </div>
-
-        <div className="p-6">
-          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Alert me before expiry</label>
-          <div className="w-full md:w-56">
-            <Select
-              value={frequency}
-              onChange={val => handleFrequencyChange({ target: { value: val } } as any)}
-              options={[
-                { value: '7 days before',            label: '7 days before'            },
-                { value: '15 days before',           label: '15 days before'           },
-                { value: '30 days before (default)', label: '30 days before (default)' },
-              ]}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Toggle rows */}
-      <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-        {notifItems.map((item) => {
-          const Icon = item.icon;
-          const active = toggles[item.key];
-          return (
-            <div key={item.key} className="flex items-center gap-4 px-6 py-4">
-              <div className={`w-8 h-8 rounded-lg grid place-items-center shrink-0 transition-colors ${active ? 'bg-black' : 'bg-gray-100'}`}>
-                <Icon size={14} className={active ? 'text-white' : 'text-gray-400'} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-800">{item.title}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{item.desc}</p>
-              </div>
-              {/* Toggle */}
-              <button
-                role="switch"
-                aria-checked={active}
-                onClick={() => handleToggle(item.key)}
-                className={`relative w-11 h-6 rounded-full transition-colors shrink-0 focus:outline-none ${active ? 'bg-black' : 'bg-gray-200'}`}
-              >
-                <span className={`block w-4 h-4 bg-white rounded-full absolute top-1 transition-transform shadow-sm ${active ? 'translate-x-6' : 'translate-x-1'}`} />
-              </button>
+        {/* Admin-set frequency info card */}
+        <div className="px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5">
+            <div className="w-9 h-9 rounded-xl bg-white border border-gray-200 grid place-items-center shrink-0">
+              <FiBell size={14} className="text-gray-400" />
             </div>
-          );
-        })}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-800">Expiry alerts set to <span className="text-gray-900">{frequency}</span></p>
+              <p className="text-xs text-gray-400 mt-0.5">Configured by your admin. Contact them to change this.</p>
+            </div>
+            <FiLock size={13} className="text-gray-300 shrink-0" />
+          </div>
+        </div>
+
+        {/* User toggles */}
+        <div className="px-6 pt-5 pb-2">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="h-px flex-1 bg-gray-100" />
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest shrink-0">Your Notifications</p>
+            <span className="h-px flex-1 bg-gray-100" />
+          </div>
+        </div>
+        <div className="divide-y divide-gray-50 px-2 pb-2">
+          {userItems.map(item => {
+            const Icon = item.icon;
+            const active = toggles[item.key];
+            const locked = item.adminLocked;
+            return (
+              <div key={item.key} className="flex items-center gap-4 px-4 py-3.5">
+                <div className={`w-9 h-9 rounded-xl grid place-items-center shrink-0 ${active && !locked ? 'bg-blue-50' : 'bg-gray-100'}`}>
+                  <Icon size={15} className={active && !locked ? 'text-blue-500' : 'text-gray-400'} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-semibold text-gray-800">{item.title}</p>
+                    {locked && (
+                      <span className="flex items-center gap-1 text-[10px] font-semibold text-gray-400 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded-md">
+                        <FiLock size={9} /> Admin
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{item.desc}</p>
+                </div>
+                <Toggle active={active} onToggle={() => !locked && handleToggle(item.key)} disabled={locked} />
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center justify-end pt-1">
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="px-5 py-2.5 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          {isSaving ? 'Saving…' : 'Save Changes'}
-        </button>
-      </div>
+      <button onClick={handleSave} disabled={isSaving}
+        className="w-full py-3.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-black transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+        {isSaving ? 'Saving…' : 'Save Preferences'}
+      </button>
     </div>
   );
 };
@@ -1218,14 +1491,14 @@ export const UserManagementPage = () => {
 
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-xl border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3 rounded-t-xl">
-          <div className="w-7 h-7 rounded-lg bg-gray-100 grid place-items-center">
-            <FiUsers size={14} className="text-gray-500" />
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-gray-900 grid place-items-center shrink-0">
+            <FiUsers size={14} className="text-white" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-gray-900">Team Members</h2>
-            <p className="text-xs text-gray-400">Assign roles and departments to your team</p>
+            <h2 className="text-sm font-bold text-gray-900">Team Members</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Assign roles and departments</p>
           </div>
         </div>
 
@@ -1240,84 +1513,72 @@ export const UserManagementPage = () => {
               const fullName = `${emp.first_name} ${emp.last_name}`;
               const isEditing = editingId === emp.id;
               const wasSaved = saved === emp.id;
+              const roleOptions = [
+                { value: 'Admin',    label: 'Admin'    },
+                { value: 'Employee', label: 'Employee' },
+                { value: 'Viewer',   label: 'Viewer'   },
+              ];
               return (
-                <div key={emp.id} className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/50 transition-colors">
+                <div key={emp.id} className="px-5 py-4 hover:bg-gray-50/40 transition-colors">
+                  {/* Top row: avatar + name/email + action button */}
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full grid place-items-center text-sm font-bold shrink-0 ${avatarColor(fullName)}`}>
+                      {emp.first_name?.[0]?.toUpperCase()}{emp.last_name?.[0]?.toUpperCase()}
+                    </div>
 
-                  {/* Avatar */}
-                  <div className={`w-9 h-9 rounded-full grid place-items-center text-xs font-semibold shrink-0 ${avatarColor(fullName)}`}>
-                    {emp.first_name?.[0]?.toUpperCase()}{emp.last_name?.[0]?.toUpperCase()}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{fullName}</p>
+                        {!isEditing && (
+                          <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold ${roleBadgeColor[emp.role] ?? 'bg-gray-100 text-gray-600'}`}>
+                            {emp.role || 'No role'}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-400 truncate mt-0.5">{emp.email}</p>
+                    </div>
+
+                    <div className="shrink-0">
+                      {isEditing ? (
+                        <div className="flex items-center gap-1.5">
+                          <button onClick={() => saveEdit(emp)} disabled={saving}
+                            className="w-9 h-9 rounded-xl bg-gray-900 text-white grid place-items-center hover:bg-black transition-colors disabled:opacity-40">
+                            <FiCheck size={14} />
+                          </button>
+                          <button onClick={cancelEdit}
+                            className="w-9 h-9 rounded-xl border border-gray-200 grid place-items-center text-gray-500 hover:bg-gray-50 transition-colors">
+                            <FiX size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button onClick={() => startEdit(emp)}
+                          className={`h-9 px-3.5 text-xs font-semibold rounded-xl border transition-colors ${
+                            wasSaved
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-600'
+                              : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                          }`}>
+                          {wasSaved ? 'Saved ✓' : 'Edit'}
+                        </button>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Name + email */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{fullName}</p>
-                    <p className="text-xs text-gray-400 truncate">{emp.email}</p>
-                  </div>
-
-                  {/* Role */}
-                  <div className="w-36 shrink-0">
-                    {isEditing ? (
+                  {/* Edit fields — expand below on all sizes */}
+                  {isEditing && (
+                    <div className="mt-3 grid grid-cols-2 gap-2 pl-[52px]">
                       <Select
                         value={editValues.role}
                         onChange={val => setEditValues(v => ({ ...v, role: val }))}
-                        options={[
-                          { value: 'Admin',    label: 'Admin'    },
-                          { value: 'Employee', label: 'Employee' },
-                          { value: 'Viewer',   label: 'Viewer'   },
-                        ]}
+                        options={roleOptions}
                       />
-                    ) : (
-                      <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${roleBadgeColor[emp.role] ?? 'bg-gray-100 text-gray-600'}`}>
-                        {emp.role || 'No role'}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Department */}
-                  <div className="w-36 shrink-0 hidden md:block">
-                    {isEditing ? (
                       <input
                         value={editValues.department}
                         onChange={e => setEditValues(v => ({ ...v, department: e.target.value }))}
-                        placeholder="e.g. Engineering"
-                        className="w-full px-2.5 py-2 text-xs border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-gray-400 transition-colors"
+                        placeholder="Department"
+                        className="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-gray-400 transition-colors"
                       />
-                    ) : (
-                      <span className="text-xs text-gray-400">{emp.department || '—'}</span>
-                    )}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    {isEditing ? (
-                      <>
-                        <button
-                          onClick={() => saveEdit(emp)}
-                          disabled={saving}
-                          className="w-8 h-8 rounded-lg bg-black text-white grid place-items-center hover:bg-gray-800 transition-colors disabled:opacity-40"
-                        >
-                          <FiCheck size={13} />
-                        </button>
-                        <button
-                          onClick={cancelEdit}
-                          className="w-8 h-8 rounded-lg border border-gray-200 grid place-items-center text-gray-500 hover:bg-gray-50 transition-colors"
-                        >
-                          <FiX size={13} />
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => startEdit(emp)}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                          wasSaved
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-600'
-                            : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                        }`}
-                      >
-                        {wasSaved ? 'Saved ✓' : 'Edit'}
-                      </button>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -1351,29 +1612,47 @@ export default function Settings() {
   ].filter(t => !t.adminOnly || canEdit);
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col lg:flex-row gap-6">
 
-      {/* Tab bar */}
-      <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl w-fit">
-        {tabs.map(t => {
-          const Icon = t.icon;
-          const active = activeTab === t.id;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setActiveTab(t.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                active ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Icon size={14} />
-              {t.label}
-            </button>
-          );
-        })}
+      {/* ── Sidebar nav (desktop) / horizontal tabs (mobile) ── */}
+      <aside className="lg:w-52 shrink-0">
+        <nav className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          {/* Header */}
+          <div className="px-4 py-4 border-b border-gray-100">
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Settings</p>
+          </div>
+
+          {/* Tab list — vertical on lg, horizontal scroll on mobile */}
+          <div className="flex lg:flex-col p-2 gap-1 overflow-x-auto lg:overflow-x-visible scrollbar-none">
+            {tabs.map(t => {
+              const Icon = t.icon;
+              const active = activeTab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTab(t.id)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap w-full transition-all duration-150 ${
+                    active
+                      ? 'bg-gray-900 text-white shadow-sm'
+                      : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                  }`}
+                >
+                  <span className={`shrink-0 p-1.5 rounded-lg ${active ? 'bg-white/10' : 'bg-gray-100'}`}>
+                    <Icon size={13} className={active ? 'text-white' : 'text-gray-500'} />
+                  </span>
+                  <span className="leading-none">{t.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      </aside>
+
+      {/* ── Page content ── */}
+      <div className="flex-1 min-w-0">
+        {renderActivePage()}
       </div>
 
-      {renderActivePage()}
     </div>
   );
 }

@@ -11,10 +11,10 @@ interface Activity {
 }
 
 const typeConfig = {
-  new:      { label: 'Created',       dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700',  bar: 'bg-emerald-500' },
-  expiring: { label: 'Expiring Soon', dot: 'bg-amber-400',   badge: 'bg-amber-50 text-amber-700',      bar: 'bg-amber-400'   },
-  expired:  { label: 'Expired',       dot: 'bg-red-500',     badge: 'bg-red-50 text-red-600',           bar: 'bg-red-500'     },
-  renewed:  { label: 'Renewed',       dot: 'bg-blue-500',    badge: 'bg-blue-50 text-blue-700',         bar: 'bg-blue-500'    },
+  new:      { label: 'Created',       dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200',  bar: 'bg-emerald-500' },
+  expiring: { label: 'Expiring Soon', dot: 'bg-amber-400',   badge: 'bg-amber-50 text-amber-700 ring-amber-200',        bar: 'bg-amber-400'   },
+  expired:  { label: 'Expired',       dot: 'bg-red-500',     badge: 'bg-red-50 text-red-600 ring-red-200',               bar: 'bg-red-500'     },
+  renewed:  { label: 'Renewed',       dot: 'bg-blue-500',    badge: 'bg-blue-50 text-blue-700 ring-blue-200',            bar: 'bg-blue-500'    },
 };
 
 export default function Activities() {
@@ -75,7 +75,7 @@ export default function Activities() {
         id: `${cred._id || cred.id || index}-created`,
         type: 'new',
         title: 'Certificate Created',
-        description: `${cred.name} - ${cred.entity}`,
+        description: `${cred.name} · ${cred.entity}`,
         date: formatDate(createdDate),
         dateIso: createdDate.toISOString(),
       });
@@ -89,7 +89,7 @@ export default function Activities() {
             id: `${cred._id || index}-expired`,
             type: 'expired',
             title: 'Certificate Expired',
-            description: `${cred.name} - ${cred.entity}`,
+            description: `${cred.name} · ${cred.entity}`,
             date: formatDate(expiryDate),
             dateIso: expiryDate.toISOString(),
           });
@@ -97,8 +97,8 @@ export default function Activities() {
           list.push({
             id: `${cred._id || index}-expiring`,
             type: 'expiring',
-            title: 'Certificate Expiring Soon',
-            description: `${cred.name} - ${cred.entity} (expires in ${daysUntilExpiry} days)`,
+            title: 'Expiring Soon',
+            description: `${cred.name} · ${cred.entity} — expires in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''}`,
             date: formatDate(now),
             dateIso: expiryDate.toISOString(),
           });
@@ -116,16 +116,16 @@ export default function Activities() {
     const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-48">
+      <div className="flex items-center justify-center h-40">
         <div className="flex gap-1.5">
           {[0, 1, 2].map(i => (
-            <span key={i} className="w-2 h-2 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+            <span key={i} className="w-2 h-2 rounded-full bg-gray-200 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
           ))}
         </div>
       </div>
@@ -134,8 +134,8 @@ export default function Activities() {
 
   if (activities.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-48 gap-2">
-        <div className="w-10 h-10 rounded-full bg-gray-100 grid place-items-center text-gray-400 text-xl">○</div>
+      <div className="flex flex-col items-center justify-center h-40 gap-2">
+        <div className="w-10 h-10 rounded-full bg-gray-100 grid place-items-center text-gray-300 text-lg">○</div>
         <p className="text-sm text-gray-400">No recent activities</p>
       </div>
     );
@@ -143,44 +143,59 @@ export default function Activities() {
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-5">
-        <h3 className="text-base font-semibold text-gray-900">Recent Activities</h3>
-        <span className="text-xs text-gray-400">{activities.length} events</span>
-      </div>
 
-      <div className="relative">
-        {/* vertical timeline line */}
-        <div className="absolute left-[7px] top-2 bottom-2 w-px bg-gray-100" />
-
-        <div className="space-y-1">
-          {activities.map((activity) => {
-            const cfg = typeConfig[activity.type] || typeConfig.new;
-            const desc = activity.type === 'expiring' && countdown[activity.id]
-              ? activity.description.replace(/expires in \d+ days/, `expires in ${countdown[activity.id]}`)
-              : activity.description;
-
-            return (
-              <div key={activity.id} className="flex items-start gap-4 pl-1 py-2.5 rounded-lg hover:bg-gray-50 transition-colors group">
-                {/* dot */}
-                <div className={`w-3.5 h-3.5 rounded-full ${cfg.dot} shrink-0 mt-0.5 ring-2 ring-white z-10`} />
-
-                <div className="flex-1 min-w-0 flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <p className="text-sm font-medium text-gray-800 leading-tight">{activity.title}</p>
-                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0 ${cfg.badge}`}>
-                        {cfg.label}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-500 truncate">{desc}</p>
-                  </div>
-                  <span className="text-xs text-gray-400 shrink-0 whitespace-nowrap mt-0.5">{activity.date}</span>
-                </div>
-              </div>
-            );
-          })}
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-100">
+        <div>
+          <h3 className="text-sm font-bold text-gray-900">Recent Activities</h3>
+          <p className="text-[11px] text-gray-400 mt-0.5">Latest certificate events</p>
         </div>
+        <span className="text-[11px] font-semibold text-gray-400 bg-gray-50 border border-gray-100 px-2.5 py-1 rounded-lg">
+          {activities.length} events
+        </span>
       </div>
+
+      {/* Activity list */}
+      <div className="divide-y divide-gray-50">
+        {activities.map((activity) => {
+          const cfg = typeConfig[activity.type] || typeConfig.new;
+          const desc = activity.type === 'expiring' && countdown[activity.id]
+            ? activity.description.replace(/expires in \d+ day[s]?/, `expires in ${countdown[activity.id]}`)
+            : activity.description;
+
+          return (
+            <div key={activity.id} className="flex items-start gap-3.5 px-5 py-4 hover:bg-gray-50/70 transition-colors">
+
+              {/* Colour dot */}
+              <div className="shrink-0 mt-1">
+                <div className={`w-2.5 h-2.5 rounded-full ${cfg.dot} ring-[3px] ring-white shadow-sm`} />
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+
+                {/* Row 1 — title + date */}
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <p className="text-sm font-semibold text-gray-800 leading-snug">{activity.title}</p>
+                  <span className="text-[11px] text-gray-400 shrink-0 whitespace-nowrap font-medium mt-0.5">
+                    {activity.date}
+                  </span>
+                </div>
+
+                {/* Row 2 — badge */}
+                <span className={`inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full ring-1 ${cfg.badge}`}>
+                  {cfg.label}
+                </span>
+
+                {/* Row 3 — description */}
+                <p className="text-xs text-gray-500 mt-1.5 leading-relaxed line-clamp-2">{desc}</p>
+
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
     </div>
   );
 }

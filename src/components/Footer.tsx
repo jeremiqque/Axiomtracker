@@ -4,7 +4,7 @@ import subtract from "../assets/subtract.png";
 
 const Footer = () => {
   return (
-    <footer className="bg-black text-white px-4 sm:px-6 md:px-16 py-8 sm:py-10">
+    <footer id="contact" className="bg-black text-white px-4 sm:px-6 md:px-16 py-8 sm:py-10">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-12">
 
         <div>

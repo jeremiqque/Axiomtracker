@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Toast from "./Toast";
+import { toast } from "../lib/toast";
+import DatePicker from "./DatePicker";
 import SearchableSelect from "./SearchableSelect";
 import Select from "./Select";
 import { credentialsService, type Credential } from "../lib/credentialsService";
@@ -22,6 +24,7 @@ const AddCredentials = () => {
   const [cities, setCities] = useState<City[]>([]);
   const [loadingCountries, setLoadingCountries] = useState(false);
   const [loadingCities, setLoadingCities] = useState(false);
+
 
   // Employee options for owner dropdown
   const [entityOptions, setEntityOptions] = useState<{ value: string; label: string }[]>([]);
@@ -77,7 +80,7 @@ const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, imageFile: file, imageUrl: '' }));
     setImagePreview(previewUrl);
   } else {
-    alert('Please select JPG/PNG image under 5MB');
+    toast('Please select a JPG or PNG image under 5MB.', 'warning');
   }
 };
 
@@ -95,7 +98,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
       // Check if required fields are filled
       if (!formData.credentialOwner || !formData.credentialType) {
         console.error('Missing required fields:', { credentialOwner: formData.credentialOwner, credentialType: formData.credentialType });
-        alert('Please fill in all required fields (Credential Owner and Credential Type)');
+        toast('Please fill in all required fields (Credential Owner and Credential Type).', 'warning');
         return;
       }
 
@@ -109,7 +112,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
           console.log('Image uploaded:', finalImageUrl);
         } catch (uploadError) {
           console.error('Image upload error:', uploadError);
-          alert('Image upload failed, but credential will be saved without image.');
+          toast('Image upload failed, but credential will be saved without image.', 'warning');
         }
         if (imagePreview) URL.revokeObjectURL(imagePreview);
       }
@@ -154,7 +157,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
       }, 1500);
     } catch (error) {
       console.error('Error saving credential:', error);
-      alert(`Failed to save credential: ${(error as Error).message || 'Unknown error'}`);
+      toast(`Failed to save credential: ${(error as Error).message || 'Unknown error'}`, 'error');
     }
   };
 
@@ -313,11 +316,19 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
           <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className={labelClass}>Date of Issue <span className="text-red-400 normal-case">*</span></label>
-              <input type="date" name="date_of_issue" value={formData.date_of_issue} onChange={handleInputChange} className={fieldClass} />
+              <DatePicker
+                value={formData.date_of_issue}
+                onChange={val => setFormData(prev => ({ ...prev, date_of_issue: val }))}
+                placeholder="Select issue date"
+              />
             </div>
             <div>
               <label className={labelClass}>Expiry Date <span className="text-red-400 normal-case">*</span></label>
-              <input type="date" name="expiry_date" value={formData.expiry_date} onChange={handleInputChange} className={fieldClass} />
+              <DatePicker
+                value={formData.expiry_date}
+                onChange={val => setFormData(prev => ({ ...prev, expiry_date: val }))}
+                placeholder="Select expiry date"
+              />
             </div>
             <div>
               <label className={labelClass}>Does it expire?</label>
@@ -345,14 +356,116 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
               <Select
                 value={formData.issuingInstitution}
                 onChange={val => setFormData(prev => ({ ...prev, issuingInstitution: val }))}
+                searchable
                 options={[
-                  { value: 'Osun State University',            label: 'Osun State University'            },
-                  { value: 'Lagos State University',           label: 'Lagos State University'           },
-                  { value: 'University of Ibadan',             label: 'University of Ibadan'             },
+                  // Nigeria
+                  { value: 'University of Lagos', label: 'University of Lagos' },
+                  { value: 'University of Ibadan', label: 'University of Ibadan' },
+                  { value: 'Obafemi Awolowo University', label: 'Obafemi Awolowo University' },
+                  { value: 'University of Nigeria, Nsukka', label: 'University of Nigeria, Nsukka' },
+                  { value: 'Lagos State University', label: 'Lagos State University' },
+                  { value: 'Osun State University', label: 'Osun State University' },
                   { value: 'Federal University of Agriculture', label: 'Federal University of Agriculture' },
-                  { value: 'Fuyoe',                            label: 'Fuyoe'                            },
+                  { value: 'Ahmadu Bello University', label: 'Ahmadu Bello University' },
+                  { value: 'University of Benin', label: 'University of Benin' },
+                  { value: 'University of Port Harcourt', label: 'University of Port Harcourt' },
+                  { value: 'Covenant University', label: 'Covenant University' },
+                  { value: 'Babcock University', label: 'Babcock University' },
+                  { value: 'Pan-Atlantic University', label: 'Pan-Atlantic University' },
+                  { value: 'Nnamdi Azikiwe University', label: 'Nnamdi Azikiwe University' },
+                  { value: 'Federal University of Technology Akure', label: 'Federal University of Technology Akure' },
+                  // USA
+                  { value: 'Harvard University', label: 'Harvard University' },
+                  { value: 'Massachusetts Institute of Technology', label: 'Massachusetts Institute of Technology' },
+                  { value: 'Stanford University', label: 'Stanford University' },
+                  { value: 'Yale University', label: 'Yale University' },
+                  { value: 'Princeton University', label: 'Princeton University' },
+                  { value: 'Columbia University', label: 'Columbia University' },
+                  { value: 'University of Chicago', label: 'University of Chicago' },
+                  { value: 'University of Pennsylvania', label: 'University of Pennsylvania' },
+                  { value: 'California Institute of Technology', label: 'California Institute of Technology' },
+                  { value: 'Duke University', label: 'Duke University' },
+                  { value: 'Johns Hopkins University', label: 'Johns Hopkins University' },
+                  { value: 'Northwestern University', label: 'Northwestern University' },
+                  { value: 'University of California, Berkeley', label: 'University of California, Berkeley' },
+                  { value: 'University of California, Los Angeles', label: 'University of California, Los Angeles' },
+                  { value: 'University of Michigan', label: 'University of Michigan' },
+                  { value: 'Cornell University', label: 'Cornell University' },
+                  { value: 'New York University', label: 'New York University' },
+                  { value: 'Georgetown University', label: 'Georgetown University' },
+                  { value: 'University of Texas at Austin', label: 'University of Texas at Austin' },
+                  { value: 'University of Washington', label: 'University of Washington' },
+                  // UK
+                  { value: 'University of Oxford', label: 'University of Oxford' },
+                  { value: 'University of Cambridge', label: 'University of Cambridge' },
+                  { value: 'Imperial College London', label: 'Imperial College London' },
+                  { value: 'University College London', label: 'University College London' },
+                  { value: 'London School of Economics', label: 'London School of Economics' },
+                  { value: 'University of Edinburgh', label: 'University of Edinburgh' },
+                  { value: 'King\'s College London', label: "King's College London" },
+                  { value: 'University of Manchester', label: 'University of Manchester' },
+                  { value: 'University of Bristol', label: 'University of Bristol' },
+                  { value: 'University of Warwick', label: 'University of Warwick' },
+                  // Canada
+                  { value: 'University of Toronto', label: 'University of Toronto' },
+                  { value: 'McGill University', label: 'McGill University' },
+                  { value: 'University of British Columbia', label: 'University of British Columbia' },
+                  { value: 'University of Alberta', label: 'University of Alberta' },
+                  { value: 'McMaster University', label: 'McMaster University' },
+                  { value: 'University of Waterloo', label: 'University of Waterloo' },
+                  { value: 'Western University', label: 'Western University' },
+                  // Australia
+                  { value: 'Australian National University', label: 'Australian National University' },
+                  { value: 'University of Melbourne', label: 'University of Melbourne' },
+                  { value: 'University of Sydney', label: 'University of Sydney' },
+                  { value: 'University of Queensland', label: 'University of Queensland' },
+                  { value: 'Monash University', label: 'Monash University' },
+                  { value: 'University of New South Wales', label: 'University of New South Wales' },
+                  // Europe
+                  { value: 'ETH Zurich', label: 'ETH Zurich' },
+                  { value: 'University of Amsterdam', label: 'University of Amsterdam' },
+                  { value: 'Sorbonne University', label: 'Sorbonne University' },
+                  { value: 'Technical University of Munich', label: 'Technical University of Munich' },
+                  { value: 'Heidelberg University', label: 'Heidelberg University' },
+                  { value: 'Delft University of Technology', label: 'Delft University of Technology' },
+                  { value: 'KU Leuven', label: 'KU Leuven' },
+                  { value: 'University of Copenhagen', label: 'University of Copenhagen' },
+                  { value: 'Uppsala University', label: 'Uppsala University' },
+                  { value: 'University of Helsinki', label: 'University of Helsinki' },
+                  { value: 'Sapienza University of Rome', label: 'Sapienza University of Rome' },
+                  { value: 'University of Barcelona', label: 'University of Barcelona' },
+                  { value: 'Charles University', label: 'Charles University' },
+                  { value: 'University of Warsaw', label: 'University of Warsaw' },
+                  // Asia
+                  { value: 'National University of Singapore', label: 'National University of Singapore' },
+                  { value: 'Nanyang Technological University', label: 'Nanyang Technological University' },
+                  { value: 'University of Tokyo', label: 'University of Tokyo' },
+                  { value: 'Kyoto University', label: 'Kyoto University' },
+                  { value: 'Peking University', label: 'Peking University' },
+                  { value: 'Tsinghua University', label: 'Tsinghua University' },
+                  { value: 'Seoul National University', label: 'Seoul National University' },
+                  { value: 'KAIST', label: 'KAIST' },
+                  { value: 'Hong Kong University of Science and Technology', label: 'Hong Kong University of Science and Technology' },
+                  { value: 'University of Hong Kong', label: 'University of Hong Kong' },
+                  { value: 'Indian Institute of Technology Bombay', label: 'Indian Institute of Technology Bombay' },
+                  { value: 'Indian Institute of Technology Delhi', label: 'Indian Institute of Technology Delhi' },
+                  { value: 'University of Delhi', label: 'University of Delhi' },
+                  // Middle East & Africa
+                  { value: 'American University of Beirut', label: 'American University of Beirut' },
+                  { value: 'University of Cape Town', label: 'University of Cape Town' },
+                  { value: 'University of Pretoria', label: 'University of Pretoria' },
+                  { value: 'Stellenbosch University', label: 'Stellenbosch University' },
+                  { value: 'University of Nairobi', label: 'University of Nairobi' },
+                  { value: 'University of Ghana', label: 'University of Ghana' },
+                  { value: 'Cairo University', label: 'Cairo University' },
+                  { value: 'American University in Cairo', label: 'American University in Cairo' },
+                  // Latin America
+                  { value: 'University of São Paulo', label: 'University of São Paulo' },
+                  { value: 'National Autonomous University of Mexico', label: 'National Autonomous University of Mexico' },
+                  { value: 'Pontifical Catholic University of Chile', label: 'Pontifical Catholic University of Chile' },
+                  { value: 'University of Buenos Aires', label: 'University of Buenos Aires' },
                 ]}
-                placeholder="Select institution"
+                placeholder="Search institution"
               />
             </div>
             <div>

@@ -33,3 +33,27 @@ html {
 .animate-fade-in {
   animation: fadeIn 0.3s ease-in-out;
 }
+
+/* ── Dropdown list — applied to every scrollable options container ── */
+.dropdown-list {
+  scroll-behavior: smooth;                /* smooth keyboard / programmatic scroll  */
+  -webkit-overflow-scrolling: touch;      /* momentum scrolling on iOS Safari       */
+  overscroll-behavior: contain;           /* stops page scroll bleeding through     */
+  scrollbar-width: thin;                  /* Firefox — narrow scrollbar             */
+  scrollbar-color: #d1d5db transparent;   /* Firefox — gray thumb, clear track      */
+}
+
+/* Webkit (Chrome / Safari / Edge) scrollbar styling */
+.dropdown-list::-webkit-scrollbar {
+  width: 4px;
+}
+.dropdown-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dropdown-list::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  border-radius: 9999px;
+}
+.dropdown-list::-webkit-scrollbar-thumb:hover {
+  background-color: #9ca3af;
+}

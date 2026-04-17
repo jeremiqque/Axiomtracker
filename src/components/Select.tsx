@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { FiChevronDown, FiCheck, FiSearch } from "react-icons/fi";
 
 export interface SelectOption {
@@ -29,7 +29,11 @@ export default function Select({
 }: SelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const ref = useRef<HTMLDivElement>(null);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const selected = options.find(o => o.value === value);
@@ -39,26 +43,71 @@ export default function Select({
     ? options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()))
     : options;
 
+  const closeDropdown = useCallback(() => {
+    setOpen(false);
+    setQuery("");
+  }, []);
+
+  // Recalculate fixed position from the trigger button
+  const recalcPosition = useCallback(() => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    // Flip upward if not enough space below
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const dropdownH = Math.min(filtered.length * 36 + (searchable ? 48 : 8), 220);
+    const showAbove = spaceBelow < dropdownH + 8 && rect.top > dropdownH + 8;
+    setDropdownStyle({
+      position: "fixed",
+      top: showAbove ? rect.top - dropdownH - 4 : rect.bottom + 4,
+      left: rect.left,
+      width: rect.width,
+      zIndex: 9999,
+    });
+  }, [filtered.length, searchable]);
+
+  const handleToggle = () => {
+    if (disabled || loading) return;
+    if (!open) recalcPosition();
+    setOpen(p => !p);
+  };
+
   // Close on outside click
   useEffect(() => {
+    if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-        setQuery("");
+      const target = e.target as Node;
+      if (
+        wrapperRef.current && !wrapperRef.current.contains(target) &&
+        dropdownRef.current && !dropdownRef.current.contains(target)
+      ) {
+        closeDropdown();
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  }, [open, closeDropdown]);
+
+  // Close + recalc on scroll/resize (position becomes stale)
+  useEffect(() => {
+    if (!open) return;
+    const onScroll = () => closeDropdown();
+    const onResize = () => { if (open) recalcPosition(); };
+    document.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+    return () => {
+      document.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [open, closeDropdown, recalcPosition]);
 
   // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { setOpen(false); setQuery(""); }
+      if (e.key === "Escape") closeDropdown();
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, []);
+  }, [closeDropdown]);
 
   // Focus search input when opened
   useEffect(() => {
@@ -69,17 +118,17 @@ export default function Select({
 
   const handleSelect = (val: string) => {
     onChange(val);
-    setOpen(false);
-    setQuery("");
+    closeDropdown();
   };
 
   return (
-    <div ref={ref} className={`relative ${className}`}>
+    <div ref={wrapperRef} className={`relative ${className}`}>
       {/* Trigger */}
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled || loading}
-        onClick={() => setOpen(p => !p)}
+        onClick={handleToggle}
         className={`
           w-full flex items-center justify-between gap-2
           px-3 py-2.5 text-sm rounded-lg border transition-all duration-150
@@ -100,10 +149,13 @@ export default function Select({
         />
       </button>
 
-      {/* Dropdown */}
+      {/* Dropdown — rendered with position:fixed to escape any overflow container */}
       {open && (
-        <div className="absolute z-50 mt-1.5 w-full min-w-[160px] bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-
+        <div
+          ref={dropdownRef}
+          style={dropdownStyle}
+          className="bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden"
+        >
           {/* Search */}
           {searchable && (
             <div className="px-2 pt-2 pb-1">
@@ -121,7 +173,7 @@ export default function Select({
           )}
 
           {/* Options */}
-          <div className="max-h-52 overflow-y-auto py-1">
+          <div className="dropdown-list max-h-52 overflow-y-auto py-1">
             {filtered.length === 0 ? (
               <p className="px-3 py-2.5 text-xs text-gray-400 text-center">No results</p>
             ) : (

@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { FiCheckCircle, FiXCircle, FiInfo, FiX } from "react-icons/fi";
 
 interface ToastProps {
   message: string;
@@ -6,28 +7,37 @@ interface ToastProps {
   onClose: () => void;
 }
 
+const config = {
+  success: { bar: "bg-emerald-500", icon: <FiCheckCircle size={16} className="text-emerald-500 shrink-0" />, title: "Success" },
+  error:   { bar: "bg-red-500",     icon: <FiXCircle     size={16} className="text-red-500 shrink-0" />,     title: "Error"   },
+  info:    { bar: "bg-blue-500",    icon: <FiInfo        size={16} className="text-blue-500 shrink-0" />,    title: "Info"    },
+};
+
 export default function Toast({ message, type, onClose }: ToastProps) {
+  const [visible, setVisible] = useState(false);
+  const cfg = config[type];
+
   useEffect(() => {
-    const timer = setTimeout(onClose, 3000);
-    return () => clearTimeout(timer);
+    const show = requestAnimationFrame(() => setVisible(true));
+    const hide = setTimeout(() => { setVisible(false); setTimeout(onClose, 300); }, 3700);
+    return () => { cancelAnimationFrame(show); clearTimeout(hide); };
   }, [onClose]);
 
-  const bgColor = {
-    success: "bg-green-500",
-    error: "bg-red-500",
-    info: "bg-blue-500",
-  }[type];
-
-  const icon = {
-    success: "✓",
-    error: "✕",
-    info: "ℹ",
-  }[type];
-
   return (
-    <div className={`${bgColor} text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 animate-fade-in`}>
-      <span className="text-xl font-bold">{icon}</span>
-      <span className="font-medium">{message}</span>
+    <div className={`relative flex items-start gap-3 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 px-4 py-3.5 overflow-hidden
+      transition-all duration-300 ease-out
+      ${visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-3"}`}
+    >
+      <span className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${cfg.bar}`} />
+      <div className="mt-0.5">{cfg.icon}</div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-bold text-gray-700 leading-none mb-1">{cfg.title}</p>
+        <p className="text-xs text-gray-500 leading-relaxed">{message}</p>
+      </div>
+      <button onClick={() => { setVisible(false); setTimeout(onClose, 300); }}
+        className="shrink-0 mt-0.5 text-gray-300 hover:text-gray-500 transition-colors">
+        <FiX size={14} />
+      </button>
     </div>
   );
 }

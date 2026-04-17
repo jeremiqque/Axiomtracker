@@ -29,6 +29,7 @@ import ResetPassword from "./components/ResetPassword";
 import Settings from "./components/Settings";
 import supabase from "./lib/supabase";
 import { useUserRole } from "./hooks/useUserRole";
+import ToastContainer from "./components/ToastContainer";
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { isAdmin, loading } = useUserRole();
@@ -59,11 +60,22 @@ function AppContent() {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // After email confirmation the URL hash contains type=signup — sign out and
+      // send the user to login so they authenticate deliberately.
+      if (event === 'SIGNED_IN' && window.location.hash.includes('type=signup')) {
+        supabase.auth.signOut().then(() => navigate('/login'));
+        return;
+      }
+
       setSession(session);
+
       if (event === 'SIGNED_OUT') {
         localStorage.removeItem('user');
         navigate('/login');
       }
+
+      // Don't redirect during password recovery — let /reset handle it
+      if (event === 'PASSWORD_RECOVERY') return;
     });
 
     return () => subscription.unsubscribe();
@@ -125,6 +137,7 @@ export default function App() {
   return (
     <Router>
       <AppContent />
+      <ToastContainer />
     </Router>
   );
 }

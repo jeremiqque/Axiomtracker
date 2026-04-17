@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { toast } from "../lib/toast";
 import CredentialTypeSelector from "./CredentialTypeSelector";
 import { useNavigate, useLocation } from "react-router-dom";
 import Deletemodal from "./Deletemodal";
@@ -107,7 +108,7 @@ export default function Credentials() {
       setSelectedCredentialName("");
     } catch (error) {
       console.error('Error deleting credential:', error);
-      alert('Failed to delete credential. Please try again.');
+      toast('Failed to delete credential. Please try again.', 'error');
     }
   };
 

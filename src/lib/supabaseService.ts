@@ -156,14 +156,18 @@ export const employeesService = {
   },
 };
 
-// ── Company Settings (singleton row, id = 1) ──────────────────────────────────
+// ── Company Settings (singleton row) ─────────────────────────────────────────
+// Fixed UUID used as the one shared row across all users.
+export const COMPANY_SETTINGS_ID = '6b1bbc25-92c8-4bf6-a8db-bc504981d61f';
+
 export interface CompanySettings {
-  id: number;
+  id: string;
   name: string;
   industry: string;
   website: string;
   size: string;
   country: string;
+  state: string;
   city: string;
   description: string;
   logo_url: string | null;
@@ -175,10 +179,10 @@ export const companySettingsService = {
     const { data, error } = await supabase
       .from('company_settings')
       .select('*')
-      .eq('id', 1)
+      .eq('id', COMPANY_SETTINGS_ID)
       .maybeSingle();
 
-    if (error) throw error;
+    if (error) throw new Error(error.message);
     return data;
   },
 
@@ -186,8 +190,8 @@ export const companySettingsService = {
     await ensureValidSession();
     const { error } = await supabase
       .from('company_settings')
-      .upsert({ id: 1, ...settings }, { onConflict: 'id' });
+      .upsert({ id: COMPANY_SETTINGS_ID, ...settings }, { onConflict: 'id' });
 
-    if (error) throw error;
+    if (error) throw new Error(error.message);
   },
 };

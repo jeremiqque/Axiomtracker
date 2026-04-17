@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Toast from "./Toast";
+import { toast } from "../lib/toast";
 import SearchableSelect from "./SearchableSelect";
 import { credentialsService, type Credential } from "../lib/credentialsService";
 import type { CredentialType } from "../lib/CredentialType";
@@ -73,7 +74,7 @@ const CompanyCredentials = () => {
       setFormData(prev => ({ ...prev, imageFile: file, imageUrl: '' }));
       setImagePreview(previewUrl);
     } else {
-      alert('Please select JPG/PNG image under 5MB');
+      toast('Please select a JPG or PNG image under 5MB.', 'warning');
     }
   };
 
@@ -115,7 +116,7 @@ const CompanyCredentials = () => {
     try {
       // Check required fields
       if (!formData.companyName || !formData.credentialType) {
-        alert('Please fill in all required fields (Company Name and Credential Type)');
+        toast('Please fill in all required fields (Company Name and Credential Type).', 'warning');
         return;
       }
 
@@ -129,7 +130,7 @@ const CompanyCredentials = () => {
           console.log('Image uploaded:', finalImageUrl);
         } catch (uploadError) {
           console.error('Image upload error:', uploadError);
-          alert('Image upload failed, but credential will be saved without image.');
+          toast('Image upload failed, but credential will be saved without image.', 'warning');
         }
         if (imagePreview) URL.revokeObjectURL(imagePreview);
       }
@@ -170,7 +171,7 @@ const CompanyCredentials = () => {
       }, 1500);
     } catch (error) {
       console.error('Error saving credential:', error);
-      alert(`Failed to save credential: ${(error as Error).message || 'Unknown error'}`);
+      toast(`Failed to save credential: ${(error as Error).message || 'Unknown error'}`, 'error');
     }
   };
 
@@ -227,7 +228,7 @@ const CompanyCredentials = () => {
         setCredentialTypes(types);
       } catch (error) {
         console.error('Error loading credential types:', error);
-        alert('Failed to load credential types');
+        toast('Failed to load credential types.', 'error');
       } finally {
         setLoadingTypes(false);
       }
@@ -239,7 +240,7 @@ const CompanyCredentials = () => {
   const handleAddNewCertType = async () => {
     const trimmed = newCertType.trim();
     if (!trimmed || trimmed.length < 2) {
-      alert('Please enter a unique certificate type name (min 2 chars)');
+      toast('Please enter a unique certificate type name (min 2 chars).', 'warning');
       return;
     }
 
@@ -251,7 +252,7 @@ const CompanyCredentials = () => {
       setFormData(prev => ({ ...prev, credentialType: trimmed }));
     } catch (error) {
       console.error('Error creating type:', error);
-      alert(`Failed to create type: ${(error as Error).message}`);
+      toast(`Failed to create type: ${(error as Error).message}`, 'error');
     }
   };
 

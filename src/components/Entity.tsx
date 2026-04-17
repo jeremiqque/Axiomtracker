@@ -1,5 +1,6 @@
 import { Plus, Search, Pencil, Trash2, MoreVertical } from "lucide-react";
-import { useState, useEffect } from "react";
+import { toast } from "../lib/toast";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import AddEmployee from "./AddEmployee";
 import { employeesService, type Employee } from "../lib/supabaseService";
@@ -33,7 +34,34 @@ export default function Entity() {
   }, []);
 
   const [openMenu, setOpenMenu] = useState<number | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [showForm, setShowForm] = useState(false);
+
+  const closeMenu = () => { setOpenMenu(null); setMenuPos(null); };
+
+  const toggleMenu = (e: React.MouseEvent<HTMLButtonElement>, empId: number) => {
+    e.stopPropagation();
+    if (openMenu === empId) { closeMenu(); return; }
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    setOpenMenu(empId);
+  };
+
+  // Close on outside click or scroll
+  useEffect(() => {
+    if (openMenu === null) return;
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) closeMenu();
+    };
+    const onScroll = () => closeMenu();
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('scroll', onScroll, true);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('scroll', onScroll, true);
+    };
+  }, [openMenu]);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -86,6 +114,8 @@ export default function Entity() {
       </div>
     );
   }
+
+  const activeEmp = filteredEmployees.find(e => e.id === openMenu) ?? null;
 
   return (
     <div className="space-y-5">
@@ -142,7 +172,7 @@ export default function Entity() {
               if (err instanceof Error && (err.message.includes('Session expired') || err.message.includes('JWT expired'))) {
                 navigate('/login');
               } else {
-                alert(`Failed to create employee: ${err instanceof Error ? err.message : 'Unknown error'}`);
+                toast(`Failed to create employee: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error');
               }
             }
           }}
@@ -201,28 +231,13 @@ export default function Entity() {
                         <div className="mt-1.5">{roleBadge(emp.role)}</div>
                       </div>
                       {(canEdit || (isEmployee && emp.email === currentUserEmail)) && (
-                        <div className="relative shrink-0">
-                          <button onClick={e => { e.stopPropagation(); setOpenMenu(openMenu === emp.id ? null : emp.id); }}
-                            className="w-8 h-8 rounded-lg hover:bg-gray-100 grid place-items-center text-gray-400 hover:text-gray-700 transition-colors">
+                        <div className="shrink-0">
+                          <button
+                            onClick={e => toggleMenu(e, emp.id)}
+                            className="w-8 h-8 rounded-lg hover:bg-gray-100 grid place-items-center text-gray-400 hover:text-gray-700 transition-colors"
+                          >
                             <MoreVertical size={15} />
                           </button>
-                          {openMenu === emp.id && (
-                            <div className="absolute right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 w-36 py-1">
-                              <button onClick={() => { setEditingEmployee(emp); setOpenMenu(null); }}
-                                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">
-                                <Pencil size={13} className="text-amber-500" /> Edit
-                              </button>
-                              {canEdit && (
-                                <>
-                                  <div className="border-t border-gray-100 my-1" />
-                                  <button onClick={() => deleteEmployee(emp)}
-                                    className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 flex items-center gap-3">
-                                    <Trash2 size={13} /> Delete
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          )}
                         </div>
                       )}
                     </div>
@@ -258,30 +273,13 @@ export default function Entity() {
                             {new Date(emp.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                           </td>
                           {(canEdit || (isEmployee && emp.email === currentUserEmail)) && (
-                            <td className="px-5 py-3.5 text-right relative">
+                            <td className="px-5 py-3.5 text-right">
                               <button
-                                onClick={e => { e.stopPropagation(); setOpenMenu(openMenu === emp.id ? null : emp.id); }}
+                                onClick={e => toggleMenu(e, emp.id)}
                                 className="w-8 h-8 rounded-lg hover:bg-gray-100 grid place-items-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
                               >
                                 <MoreVertical size={15} />
                               </button>
-                              {openMenu === emp.id && (
-                                <div className="dropdown-menu absolute right-4 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 w-36 py-1">
-                                  <button onClick={() => { setEditingEmployee(emp); setOpenMenu(null); }}
-                                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors">
-                                    <Pencil size={13} className="text-amber-500" /> Edit
-                                  </button>
-                                  {canEdit && (
-                                    <>
-                                      <div className="border-t border-gray-100 my-1" />
-                                      <button onClick={() => deleteEmployee(emp)}
-                                        className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 flex items-center gap-3 transition-colors">
-                                        <Trash2 size={13} /> Delete
-                                      </button>
-                                    </>
-                                  )}
-                                </div>
-                              )}
                             </td>
                           )}
                         </tr>
@@ -301,6 +299,34 @@ export default function Entity() {
             )}
           </div>
         </>
+      )}
+
+      {/* ── Floating dropdown (escapes all overflow containers) ── */}
+      {openMenu !== null && menuPos && activeEmp && (
+        <div
+          ref={dropdownRef}
+          style={{ position: 'fixed', top: menuPos.top, right: menuPos.right, zIndex: 9999 }}
+          className="bg-white border border-gray-200 rounded-xl shadow-xl w-36 py-1"
+          onMouseDown={e => e.stopPropagation()}
+        >
+          <button
+            onClick={() => { setEditingEmployee(activeEmp); closeMenu(); }}
+            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+          >
+            <Pencil size={13} className="text-amber-500" /> Edit
+          </button>
+          {canEdit && (
+            <>
+              <div className="border-t border-gray-100 my-1" />
+              <button
+                onClick={() => { deleteEmployee(activeEmp); closeMenu(); }}
+                className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 flex items-center gap-3 transition-colors"
+              >
+                <Trash2 size={13} /> Delete
+              </button>
+            </>
+          )}
+        </div>
       )}
     </div>
   );
