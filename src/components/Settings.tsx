@@ -3,7 +3,7 @@ import { employeesService, COMPANY_SETTINGS_ID } from "../lib/supabaseService";
 import { toast } from "../lib/toast";
 import Select from "./Select";
 import supabase from "../lib/supabase";
-import { fetchCountries, fetchCities, fetchCitiesByState, fetchStates } from "../lib/geoService";
+import { fetchCountries, fetchCitiesByState, fetchStates } from "../lib/geoService";
 import type { CountryOption as Country, CityOption as City, StateOption as State } from "../lib/geoService";
 import { FiBell, FiUsers, FiMail, FiAlertCircle, FiUser, FiLock, FiUpload, FiBriefcase, FiShield, FiCheck, FiX, FiCamera, FiGlobe, FiMapPin, FiBarChart2 } from "react-icons/fi";
 import { useUserRole } from "../hooks/useUserRole";
@@ -1137,9 +1137,7 @@ export const NotificationPreferencePage = () => {
 
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleFrequencyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setFrequency(e.target.value);
-  };
+
 
   const handleToggle = (key: keyof typeof toggles) => {
     setToggles({ ...toggles, [key]: !toggles[key] });
